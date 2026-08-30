@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VitalSync HMS - Billing &amp; Invoice</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#2d3133",
+                      "on-background": "#191c1e",
+                      "surface-variant": "#e0e3e5",
+                      "on-tertiary-fixed": "#131b2e",
+                      "surface-tint": "#006398",
+                      "tertiary-fixed": "#dae2fd",
+                      "on-surface-variant": "#3f4850",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#54647a",
+                      "surface": "#f7f9fb",
+                      "on-tertiary-fixed-variant": "#3f465c",
+                      "error": "#ba1a1a",
+                      "outline": "#707881",
+                      "surface-bright": "#f7f9fb",
+                      "tertiary-fixed-dim": "#bec6e0",
+                      "surface-container-low": "#f2f4f6",
+                      "on-primary-fixed": "#001d31",
+                      "on-error": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "surface-container": "#eceef0",
+                      "secondary": "#505f76",
+                      "background": "#f7f9fb",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "surface-dim": "#d8dadc",
+                      "primary": "#006194",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-primary-fixed-variant": "#004b73",
+                      "on-primary-container": "#fdfcff",
+                      "secondary-fixed": "#d3e4fe",
+                      "primary-fixed-dim": "#93ccff",
+                      "inverse-primary": "#93ccff",
+                      "surface-container-high": "#e6e8ea",
+                      "outline-variant": "#bfc7d2",
+                      "tertiary-container": "#6c748b",
+                      "secondary-container": "#d0e1fb",
+                      "primary-fixed": "#cce5ff",
+                      "primary-container": "#007bb9",
+                      "surface-container-highest": "#e0e3e5",
+                      "surface-container-lowest": "#ffffff",
+                      "on-surface": "#191c1e",
+                      "on-tertiary-container": "#fefcff",
+                      "tertiary": "#545c72",
+                      "on-error-container": "#93000a",
+                      "error-container": "#ffdad6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "topbar-height": "64px",
+                      "container-padding-mobile": "16px",
+                      "container-padding-desktop": "32px",
+                      "sidebar-width": "260px",
+                      "gutter": "24px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "stats-lg": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "stats-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+      </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary/20 selection:text-primary">
+<!-- SideNavBar -->
+<nav class="hidden md:flex bg-inverse-surface dark:bg-on-background fixed left-0 top-0 h-screen w-sidebar-width border-r border-outline-variant dark:border-outline shadow-sm flex-col py-unit-6 z-20">
+<div class="px-gutter mb-8 flex items-center gap-3">
+<img alt="VitalSync HMS Logo" class="w-8 h-8 rounded" data-alt="A clean, minimalist logo icon for VitalSync HMS, utilizing a modern, geometric medical cross in a deep blue and crisp white palette. The logo conveys trust, efficiency, and high-tech healthcare management." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKPx9hFxP9I4O3UtdHD9wyNVqLkCqvOVwMztzc-h2D18ZqffM7f2l-schCUpvWWudHiwxV_mavRs4mCoqjv3UGDI3mCtLN6Lv1KfdTSYqq8OYfNtDqR53sCIQyOExUkmZYyJH_NpH5Srvz4e_geFWJalsrqiOtFcwhL4gKshpDB_zKJ8674D6yZjmWB5g6GYEe_Z8MmLQZl6jpMIENw_D286yqWBtMbpmbFI6bx28uHQ-tQu9Fa-oS"/>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed">VitalSync HMS</h1>
+<p class="font-label-md text-label-md text-outline">Healthcare Management</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-unit-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md">Patients</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span class="font-label-md text-label-md">Doctors</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="event_available">event_available</span>
+<span class="font-label-md text-label-md">Appointments</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="prescriptions">prescriptions</span>
+<span class="font-label-md text-label-md">Prescriptions</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary-container text-on-primary-container border-l-2 border-primary-fixed-dim hover:bg-primary/10 transition-colors duration-200 active-scale" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Billing</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+<div class="mt-auto px-unit-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-md text-label-md">Help Center</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 hover:bg-primary/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</nav>
+<!-- TopNavBar -->
+<header class="hidden md:flex bg-surface dark:bg-surface-dim docked full-width top-0 h-topbar-height border-b border-surface-variant dark:border-outline-variant shadow-sm dark:shadow-none justify-between items-center px-container-padding-desktop w-full ml-sidebar-width fixed z-10">
+<div class="flex items-center gap-6">
+<span class="font-headline-md text-headline-md text-on-surface hidden md:block">VitalSync HMS</span>
+<div class="flex items-center gap-2">
+<a class="font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high transition-all px-2 py-1 rounded" href="#">Dashboard</a>
+<span class="text-on-surface-variant material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
+<a class="font-body-md text-body-md text-primary font-bold border-b-2 border-primary px-2 py-1" href="#">Billing</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="pl-9 pr-4 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest font-label-md text-label-md focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none w-64 transition-all" placeholder="Search..." type="text"/>
+</div>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="apps">apps</span>
+</button>
+<img alt="Dr. Sarah Mitchell - Admin Profile" class="w-8 h-8 rounded-full border border-surface-variant object-cover cursor-pointer hover:opacity-80 transition-opacity" data-alt="A professional headshot of Dr. Sarah Mitchell, a healthcare administrator, wearing a crisp white coat over a light blue shirt. Bright, clinical lighting, neutral gray background, confident and welcoming expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZK4XNdJnvRpcRWrzlH6QKn2KtmFsLkMvNLdNeMwmQ_wR3pu0jSXYQ_CNfYW5l9o6pICfGuuISvVCicbczjgTxRioiIYD8xyxw_0tPktXsYhWoklr6qrwMQQhtkxGIV1RkoeDnqthQEQA1beeZX4CU-B1eDNqZJ2TBpIWPJ4qx89oCMWMrmQ1v_4CA2EuHLVXXnSZca94Hs16yOtP2Bu_LgedaBrOLTggF8qkyFsTiHCr9rpGeScim"/>
+</div>
+</header>
+<!-- Main Content -->
+<main class="pt-topbar-height md:ml-sidebar-width min-h-screen p-container-padding-mobile md:p-container-padding-desktop flex flex-col gap-gutter">
+<header class="flex justify-between items-end mb-4">
+<div>
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Billing &amp; Invoices</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage patient billing, payments, and generate invoices.</p>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                Create New Bill
+            </button>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Left Column: Overview Table -->
+<div class="lg:col-span-8 flex flex-col gap-gutter">
+<div class="bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm flex flex-col overflow-hidden relative" style="box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+<div class="p-4 border-b border-surface-variant flex justify-between items-center bg-surface-bright">
+<h3 class="font-headline-md text-headline-md text-on-surface">Recent Bills</h3>
+<div class="flex gap-2">
+<button class="p-1.5 rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-surface-variant">
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Bill ID</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Patient</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Date</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Total Amount</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low font-body-md text-body-md">
+<tr class="hover:bg-surface-bright transition-colors cursor-pointer group">
+<td class="py-3 px-4 font-medium text-on-surface">#INV-2023-001</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">JD</div>
+<span>John Doe</span>
+</div>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">Oct 24, 2023</td>
+<td class="py-3 px-4 text-right font-medium">$450.00</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-semibold tracking-wide bg-emerald-100 text-emerald-800 border border-emerald-200">PAID</span>
+</td>
+<td class="py-3 px-4 text-outline group-hover:text-primary transition-colors">
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="download">download</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-bright transition-colors cursor-pointer group border-l-2 border-primary bg-primary/5">
+<td class="py-3 px-4 font-medium text-on-surface">#INV-2023-002</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-xs">AS</div>
+<span>Alice Smith</span>
+</div>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">Oct 25, 2023</td>
+<td class="py-3 px-4 text-right font-medium">$120.50</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-semibold tracking-wide bg-amber-100 text-amber-800 border border-amber-200">PENDING</span>
+</td>
+<td class="py-3 px-4 text-outline group-hover:text-primary transition-colors">
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="download">download</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-bright transition-colors cursor-pointer group">
+<td class="py-3 px-4 font-medium text-on-surface">#INV-2023-003</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-bold text-xs">RJ</div>
+<span>Robert Johnson</span>
+</div>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">Oct 20, 2023</td>
+<td class="py-3 px-4 text-right font-medium">$850.00</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-semibold tracking-wide bg-rose-100 text-rose-800 border border-rose-200">OVERDUE</span>
+</td>
+<td class="py-3 px-4 text-outline group-hover:text-primary transition-colors">
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="download">download</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-bright transition-colors cursor-pointer group">
+<td class="py-3 px-4 font-medium text-on-surface">#INV-2023-004</td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">EW</div>
+<span>Emily White</span>
+</div>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">Oct 26, 2023</td>
+<td class="py-3 px-4 text-right font-medium">$75.00</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-semibold tracking-wide bg-emerald-100 text-emerald-800 border border-emerald-200">PAID</span>
+</td>
+<td class="py-3 px-4 text-outline group-hover:text-primary transition-colors">
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+<button class="p-1 hover:bg-surface-container-high rounded"><span class="material-symbols-outlined" data-icon="download">download</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-surface-variant flex justify-between items-center bg-surface-bright mt-auto">
+<div class="flex items-center gap-2 text-sm text-on-surface-variant">
+<span>Rows per page:</span>
+<select class="border-none bg-transparent py-1 pl-2 pr-6 focus:ring-0 text-sm cursor-pointer">
+<option>10</option>
+<option>25</option>
+<option>50</option>
+</select>
+</div>
+<div class="flex items-center gap-4 text-sm text-on-surface-variant">
+<span>1-4 of 48</span>
+<div class="flex gap-1">
+<button class="p-1 rounded hover:bg-surface-container-high disabled:opacity-50"><span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span></button>
+<button class="p-1 rounded hover:bg-surface-container-high"><span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Create Bill & Preview -->
+<div class="lg:col-span-4 flex flex-col gap-gutter">
+<!-- Invoice Preview Card -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm overflow-hidden" style="box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);">
+<!-- Header -->
+<div class="bg-surface-container-low p-6 border-b border-surface-variant">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h4 class="font-headline-md text-headline-md text-primary font-bold">VitalSync HMS</h4>
+<p class="text-xs text-on-surface-variant mt-1">123 Health Ave, Medical District<br/>Cityville, State 12345<br/>contact@vitalsync.com</p>
+</div>
+<div class="text-right">
+<div class="font-headline-md text-headline-md text-on-surface uppercase tracking-wider mb-1">Invoice</div>
+<div class="text-sm font-medium text-on-surface">#INV-2023-002</div>
+<div class="text-xs text-on-surface-variant">Oct 25, 2023</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 border-t border-outline-variant/30 pt-4">
+<div>
+<div class="text-[10px] uppercase font-bold text-outline tracking-wider mb-1">Bill To</div>
+<div class="text-sm font-semibold text-on-surface">Alice Smith</div>
+<div class="text-xs text-on-surface-variant">Patient ID: P-8932<br/>alice.smith@email.com</div>
+</div>
+<div class="text-right">
+<div class="text-[10px] uppercase font-bold text-outline tracking-wider mb-1">Amount Due</div>
+<div class="text-xl font-bold text-primary">$120.50</div>
+<div class="text-xs text-amber-600 mt-1 font-medium">Due by Nov 01, 2023</div>
+</div>
+</div>
+</div>
+<!-- Itemized List -->
+<div class="p-6">
+<table class="w-full text-left mb-6">
+<thead>
+<tr class="border-b border-surface-variant text-xs text-outline uppercase tracking-wider">
+<th class="pb-2 font-medium">Description</th>
+<th class="pb-2 font-medium text-right">Qty</th>
+<th class="pb-2 font-medium text-right">Price</th>
+<th class="pb-2 font-medium text-right">Total</th>
+</tr>
+</thead>
+<tbody class="text-sm text-on-surface divide-y divide-surface-container-low/50">
+<tr>
+<td class="py-3">General Consultation<br/><span class="text-xs text-outline">Dr. Sarah Mitchell</span></td>
+<td class="py-3 text-right">1</td>
+<td class="py-3 text-right">$80.00</td>
+<td class="py-3 text-right font-medium">$80.00</td>
+</tr>
+<tr>
+<td class="py-3">Amoxicillin 500mg<br/><span class="text-xs text-outline">Pharmacy (Rx-104)</span></td>
+<td class="py-3 text-right">1</td>
+<td class="py-3 text-right">$25.50</td>
+<td class="py-3 text-right font-medium">$25.50</td>
+</tr>
+<tr>
+<td class="py-3">Basic Blood Panel</td>
+<td class="py-3 text-right">1</td>
+<td class="py-3 text-right">$35.00</td>
+<td class="py-3 text-right font-medium">$35.00</td>
+</tr>
+</tbody>
+</table>
+<!-- Totals -->
+<div class="w-full flex justify-end">
+<div class="w-2/3 space-y-2 text-sm">
+<div class="flex justify-between text-on-surface-variant">
+<span>Subtotal</span>
+<span>$140.50</span>
+</div>
+<div class="flex justify-between text-emerald-600">
+<span>Discount (Senior)</span>
+<span>-$20.00</span>
+</div>
+<div class="flex justify-between font-bold text-base text-on-surface border-t border-surface-variant pt-2 mt-2">
+<span>Total</span>
+<span>$120.50</span>
+</div>
+</div>
+</div>
+<!-- Footer / QR -->
+<div class="mt-8 pt-6 border-t border-surface-variant flex justify-between items-center">
+<div class="text-xs text-on-surface-variant">
+<p class="font-medium text-on-surface mb-1">Payment Instructions</p>
+<p>Please pay within 7 days.<br/>Bank Transfer: ACT-12345678</p>
+</div>
+<div class="w-16 h-16 bg-surface-container-highest rounded-md p-1 border border-outline-variant flex items-center justify-center relative overflow-hidden">
+<!-- Simple representation of a QR code using grid -->
+<div class="grid grid-cols-4 grid-rows-4 gap-0.5 w-full h-full opacity-70">
+<div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div>
+<div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div>
+<div class="bg-transparent"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-transparent"></div>
+<div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="bg-surface-bright p-4 border-t border-surface-variant flex gap-3">
+<button class="flex-1 bg-surface-container-lowest border border-outline-variant text-on-surface-variant py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="print">print</span> Print
+                        </button>
+<button class="flex-1 bg-primary text-on-primary py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="send">send</span> Send Invoice
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple script to handle active states on navigation (for visual effect in prototype)
+        document.addEventListener('DOMContentLoaded', () => {
+            const navItems = document.querySelectorAll('nav a');
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Remove active classes from all
+                    navItems.forEach(nav => {
+                        nav.classList.remove('bg-primary-container', 'text-on-primary-container', 'border-l-2', 'border-primary-fixed-dim');
+                        nav.classList.add('text-on-surface-variant');
+                    });
+                    // Add to clicked
+                    item.classList.remove('text-on-surface-variant');
+                    item.classList.add('bg-primary-container', 'text-on-primary-container', 'border-l-2', 'border-primary-fixed-dim');
+                });
+            });
+        });
+    </script>
+</body></html>

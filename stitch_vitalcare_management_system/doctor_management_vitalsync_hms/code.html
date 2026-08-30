@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VitalSync HMS - Doctors</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#2d3133",
+                      "on-background": "#191c1e",
+                      "surface-variant": "#e0e3e5",
+                      "on-tertiary-fixed": "#131b2e",
+                      "surface-tint": "#006398",
+                      "tertiary-fixed": "#dae2fd",
+                      "on-surface-variant": "#3f4850",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#54647a",
+                      "surface": "#f7f9fb",
+                      "on-tertiary-fixed-variant": "#3f465c",
+                      "error": "#ba1a1a",
+                      "outline": "#707881",
+                      "surface-bright": "#f7f9fb",
+                      "tertiary-fixed-dim": "#bec6e0",
+                      "surface-container-low": "#f2f4f6",
+                      "on-primary-fixed": "#001d31",
+                      "on-error": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "surface-container": "#eceef0",
+                      "secondary": "#505f76",
+                      "background": "#f7f9fb",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "surface-dim": "#d8dadc",
+                      "primary": "#006194",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-primary-fixed-variant": "#004b73",
+                      "on-primary-container": "#fdfcff",
+                      "secondary-fixed": "#d3e4fe",
+                      "primary-fixed-dim": "#93ccff",
+                      "inverse-primary": "#93ccff",
+                      "surface-container-high": "#e6e8ea",
+                      "outline-variant": "#bfc7d2",
+                      "tertiary-container": "#6c748b",
+                      "secondary-container": "#d0e1fb",
+                      "primary-fixed": "#cce5ff",
+                      "primary-container": "#007bb9",
+                      "surface-container-highest": "#e0e3e5",
+                      "surface-container-lowest": "#ffffff",
+                      "on-surface": "#191c1e",
+                      "on-tertiary-container": "#fefcff",
+                      "tertiary": "#545c72",
+                      "on-error-container": "#93000a",
+                      "error-container": "#ffdad6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "topbar-height": "64px",
+                      "container-padding-mobile": "16px",
+                      "container-padding-desktop": "32px",
+                      "sidebar-width": "260px",
+                      "gutter": "24px"
+              },
+              "fontFamily": {
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "stats-lg": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-lg-mobile": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "stats-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-lg": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface flex min-h-screen">
+<!-- SideNavBar (From JSON) -->
+<aside class="fixed left-0 top-0 h-screen w-sidebar-width bg-inverse-surface text-primary-fixed-dim border-r border-outline-variant shadow-sm flex flex-col py-unit-6 z-20">
+<!-- Brand -->
+<div class="px-gutter mb-8 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed">VitalSync HMS</h1>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Healthcare Management</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md">Patients</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded bg-primary-container text-on-primary-container border-l-2 border-primary-fixed-dim transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+<span class="font-label-md text-label-md">Doctors</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">event_available</span>
+<span class="font-label-md text-label-md">Appointments</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">prescriptions</span>
+<span class="font-label-md text-label-md">Prescriptions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Billing</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+<!-- Footer Tabs -->
+<div class="px-4 mt-auto space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Help Center</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-on-primary-fixed hover:bg-surface-variant/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 ml-sidebar-width">
+<!-- TopNavBar (From JSON) -->
+<header class="docked full-width top-0 h-topbar-height bg-surface text-primary border-b border-surface-variant shadow-sm flex justify-between items-center px-container-padding-desktop w-full z-10 sticky top-0">
+<!-- Left Side: Search & Breadcrumbs -->
+<div class="flex items-center gap-6 flex-1">
+<div class="hidden md:block font-headline-md text-headline-md text-on-surface font-bold">
+                    VitalSync HMS
+                </div>
+<div class="relative max-w-md w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-primary/20 font-label-md text-label-md outline-none transition-all" placeholder="Search doctors, specialties..." type="text"/>
+</div>
+</div>
+<!-- Right Side: Actions & Profile -->
+<div class="flex items-center gap-4">
+<nav class="hidden md:flex gap-4">
+<a class="font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-all" href="#">Dashboard</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-all" href="#">Patients</a>
+</nav>
+<div class="w-px h-6 bg-outline-variant mx-2"></div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all flex items-center justify-center">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<img alt="Dr. Sarah Mitchell - Admin Profile" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="Professional headshot of a female doctor acting as an admin, wearing a subtle white coat over a modern blouse, set against a pristine white clinic background with soft, high-key lighting. The style is modern corporate healthcare, radiating trust and efficiency." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEgQ9JFLUsb8XmsBaNN-yT4pFRM2a2dmAcL6Ox5N2MBTXQzzAL1XfRX5-yrrWJuWzJHKyujepTEqXJgCNtSRTvNmaSARVmRzjxdCMDLatKMfMLrh0T8bK5mjoOdkYRicWniFf0gj7p5QZP8l7LIqX2DU5hNLLubuTA-3GZI1O12vaC7vZ5wW64GSUSlmHXFnD7d4EHMOpQHQa1N2fgySl8BE0hd2aS7QooCxA2B6EXSh9kTtELf4nr"/>
+</div>
+</header>
+<!-- Page Content -->
+<div class="flex-1 p-container-padding-desktop">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface">Doctors Directory</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage hospital staff, view schedules, and add new specialists.</p>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container font-label-md text-label-md px-6 py-3 rounded-lg shadow-sm transition-colors duration-200 flex items-center gap-2">
+<span class="material-symbols-outlined">add</span>
+                    Add New Doctor
+                </button>
+</div>
+<!-- Filters Bar -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-4 mb-8 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+<div class="flex flex-wrap gap-4 items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">filter_list</span>
+<span class="font-label-md text-label-md text-on-surface uppercase">Filters</span>
+</div>
+<select class="bg-surface border border-outline-variant rounded px-3 py-2 font-body-md text-body-md focus:border-primary outline-none">
+<option>All Specialties</option>
+<option>Cardiology</option>
+<option>Pediatrics</option>
+<option>Neurology</option>
+<option>Orthopedics</option>
+</select>
+<select class="bg-surface border border-outline-variant rounded px-3 py-2 font-body-md text-body-md focus:border-primary outline-none">
+<option>Status: All</option>
+<option>Available Now</option>
+<option>In Surgery</option>
+<option>Off Duty</option>
+</select>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant">
+                    Showing <strong>12</strong> specialists
+                </div>
+</div>
+<!-- Doctors Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div class="relative">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-surface-container-highest" data-alt="A portrait of a male cardiologist in his late 40s with a warm, reassuring smile. He is wearing a modern dark blue scrub top and a stethoscope around his neck. The background is a slightly blurred, bright hospital corridor to emphasize a clean, professional medical environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBctLRtQ8NHjbeK38jiNpkCE7D4Ng9jR5rbsE30fNR5jFOa1-cughyOBYzbdmiV44xQCk2AUGGVvTGlTmDGMFiIPSqHkqeIkX9ruHCwPtRQoKexEHQk4tvfBYvjBKOFdO1AP3kbP_Ta4LBeSDsQZGJEA25Yi9bYllkJa0mLt1DDdh7TbNOCxyCUS_xqmGOF8hnmz9I_yBIRJYPstupgEloj_bAZI6H-cvkRwIXBsldc2dSoWhwaBa00"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-surface-container-lowest rounded-full"></div>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Dr. Robert Chen</h3>
+<p class="font-label-md text-label-md text-primary mt-1 uppercase tracking-wider">Cardiology</p>
+</div>
+<div class="space-y-2 mb-6 flex-1">
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+                            Mon, Wed, Fri (9am - 5pm)
+                        </div>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                            +1 (555) 123-4567
+                        </div>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                            r.chen@vitalsync.com
+                        </div>
+</div>
+<button class="w-full py-2 border border-outline-variant rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+                        View Schedule
+                    </button>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div class="relative">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-surface-container-highest" data-alt="A portrait of a female pediatrician in her 30s with an approachable, cheerful expression. She wears a colorful lanyard over white clinical attire. The setting is a well-lit consultation room with soft, calming lighting typical of a high-end pediatric clinic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFywVtwJtodyjzPqX6BmW2hTzuT_guMztAIcO4SjgredtVXw33yo2ah22nV8i_RyUJbU5_b79jUj6n6qzF_qWfyADPx4tyKSmubmQjcggDbtnt8Rjlrj3_dtxTCLUzczLcF2fqhHlvGLNG7T9OIoiQ4F4kjcYZCN5OoJMqHcw8py__uA9F72GfZzd2lckBTfLhtQko1vMiqJrvhaZBWYeytLcNsigI2cTymdMPulSccY03bs3ko2ix"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-amber-500 border-2 border-surface-container-lowest rounded-full"></div>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Dr. Emily Stanton</h3>
+<p class="font-label-md text-label-md text-primary mt-1 uppercase tracking-wider">Pediatrics</p>
+</div>
+<div class="space-y-2 mb-6 flex-1">
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+                            Tue, Thu, Sat (8am - 4pm)
+                        </div>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                            +1 (555) 987-6543
+                        </div>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                            e.stanton@vitalsync.com
+                        </div>
+</div>
+<button class="w-full py-2 border border-outline-variant rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+                        View Schedule
+                    </button>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div class="relative">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-surface-container-highest" data-alt="A portrait of a male neurologist, distinguished and focused, wearing a white lab coat over a tailored shirt. The background features a subtle, out-of-focus digital medical display, reinforcing a high-tech, modern corporate healthcare aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDhB0ud0-09zEzZXawjKzpZLVHPtCJc7ZAKFsceZpd0U3OzomyGE9l8LUB4R2uHECaWZU7VDfXDWnVi-eeNra4KcjwewiQjHvDdaf3X57qFO9qX1pVQ5YoFnF_Pmq5Pmpapf0RugKyK_JSfb-OttwKwRoPYSmwXrDyFUx92CCSMIEYke9igWZcrzPvNm8XZftMy9UKYJaN1IhgRucFWT7WYkA3JdEcojvwqc9M0J-3-0QRoYKRbs85"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-rose-500 border-2 border-surface-container-lowest rounded-full"></div>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Dr. Marcus Vance</h3>
+<p class="font-label-md text-label-md text-primary mt-1 uppercase tracking-wider">Neurology</p>
+</div>
+<div class="space-y-2 mb-6 flex-1">
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+                            Mon - Fri (10am - 6pm)
+                        </div>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                            +1 (555) 456-7890
+                        </div>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                            m.vance@vitalsync.com
+                        </div>
+</div>
+<button class="w-full py-2 border border-outline-variant rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+                        View Schedule
+                    </button>
+</div>
+</div>
+<!-- Empty State (Hidden by default, structure provided) -->
+<!--
+            <div class="flex flex-col items-center justify-center py-20 text-center">
+                <span class="material-symbols-outlined text-6xl text-outline-variant mb-4">search_off</span>
+                <h3 class="font-headline-lg text-headline-lg text-on-surface mb-2">No doctors found</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant max-w-md">We couldn't find any specialists matching your current filter criteria. Try adjusting your search terms or filters.</p>
+                <button class="mt-6 px-4 py-2 border border-outline-variant rounded text-on-surface-variant hover:bg-surface-container-low transition-colors font-label-md text-label-md">
+                    Clear Filters
+                </button>
+            </div>
+            -->
+</div>
+</main>
+</body></html>
