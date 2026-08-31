@@ -55,8 +55,15 @@ public class Bill {
     private String paymentMethod = "Cash";
 
     @Column(name = "payment_status", nullable = false, length = 20)
-    private String paymentStatus = "Pending"; // Pending, Paid, Partially Paid, Cancelled
+    private String paymentStatus = "Pending";
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

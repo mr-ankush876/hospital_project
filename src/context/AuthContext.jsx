@@ -1,45 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { authApi } from '../services/api';
 
 const AuthContext = createContext(null);
-
-// Default Admin user for universal bypass login
-const createUniversalUser = (username) => {
-  const cleanName = (username || 'Admin').trim();
-  const capitalized = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-  
-  // Determine role or default to ADMIN for full access
-  let role = 'ADMIN';
-  const lower = cleanName.toLowerCase();
-  if (lower.includes('doctor') || lower.includes('dr.')) {
-    role = 'DOCTOR';
-  } else if (lower.includes('reception')) {
-    role = 'RECEPTIONIST';
-  }
-
-  return {
-    id: 1,
-    username: cleanName || 'admin',
-    email: `${(cleanName || 'admin').toLowerCase()}@vitalsync.com`,
-    fullName: cleanName.toLowerCase().startsWith('dr.') ? cleanName : `Dr. ${capitalized}`,
-    role: role,
-    createdAt: new Date().toISOString(),
-  };
-};
-
-const createMockToken = (username, role) => {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = btoa(
-    JSON.stringify({
-      sub: username,
-      role: role,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 86400 * 365, // 1 year validity
-      offline: true,
-    })
-  );
-  const signature = btoa('vitalsync-free-access-token');
-  return `${header}.${payload}.${signature}`;
-};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
@@ -52,47 +14,69 @@ export const AuthProvider = ({ children }) => {
   });
   const [token, setToken] = useState(() => localStorage.getItem('vitalsync_token') || null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Validate session on load: Always persist session without clearing
+  // Validate session on mount by checking with the backend
   useEffect(() => {
-    const savedToken = localStorage.getItem('vitalsync_token');
-    const savedUser = localStorage.getItem('vitalsync_user');
+    const validateSession = async () => {
+      const savedToken = localStorage.getItem('vitalsync_token');
+      if (!savedToken) return;
 
-    if (savedToken && savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const res = await authApi.getCurrentUser();
+        const userData = res.data;
+        setUser(userData);
         setToken(savedToken);
-      } catch {
-        // Fallback default
-        const defaultUser = createUniversalUser('admin');
-        setUser(defaultUser);
-        setToken(createMockToken('admin', 'ADMIN'));
+        localStorage.setItem('vitalsync_user', JSON.stringify(userData));
+      } catch (err) {
+        // Token is invalid or expired — clear session
+        console.warn('Session validation failed, clearing auth state:', err?.response?.status);
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('vitalsync_token');
+        localStorage.removeItem('vitalsync_user');
       }
-    }
-    setLoading(false);
+    };
+
+    validateSession();
   }, []);
 
-  // Instant login with ANY text or blank
+  // Login via real backend API
   const login = async (username, password) => {
     setLoading(true);
+    setError(null);
 
-    const targetUsername = username && username.trim() ? username.trim() : 'admin';
-    const targetUser = createUniversalUser(targetUsername);
-    const mockToken = createMockToken(targetUser.username, targetUser.role);
+    try {
+      const res = await authApi.login({ username, password });
+      const { token: jwtToken, user: userData } = res.data;
 
-    setUser(targetUser);
-    setToken(mockToken);
+      setUser(userData);
+      setToken(jwtToken);
 
-    localStorage.setItem('vitalsync_token', mockToken);
-    localStorage.setItem('vitalsync_user', JSON.stringify(targetUser));
+      localStorage.setItem('vitalsync_token', jwtToken);
+      localStorage.setItem('vitalsync_user', JSON.stringify(userData));
 
-    setLoading(false);
-    return { success: true, role: targetUser.role, user: targetUser };
+      setLoading(false);
+      return { success: true, role: userData.role, user: userData };
+    } catch (err) {
+      setLoading(false);
+
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (err?.response?.status === 401 ? 'Invalid username or password' : null) ||
+        (err?.message === 'Network Error' ? 'Cannot connect to backend server. Is it running on port 8080?' : null) ||
+        'Login failed. Please try again.';
+
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
   };
 
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
+    setError(null);
     localStorage.removeItem('vitalsync_token');
     localStorage.removeItem('vitalsync_user');
   }, []);
@@ -118,7 +102,7 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token && !!user,
         loading,
-        error: null,
+        error,
         login,
         logout,
         hasRole,

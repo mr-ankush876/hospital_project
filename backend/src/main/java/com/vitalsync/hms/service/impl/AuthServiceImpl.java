@@ -4,16 +4,13 @@ import com.vitalsync.hms.dto.AuthRequest;
 import com.vitalsync.hms.dto.AuthResponse;
 import com.vitalsync.hms.dto.UserDto;
 import com.vitalsync.hms.entity.User;
-import com.vitalsync.hms.exception.BadRequestException;
 import com.vitalsync.hms.exception.ResourceNotFoundException;
 import com.vitalsync.hms.repository.UserRepository;
 import com.vitalsync.hms.security.JwtUtil;
 import com.vitalsync.hms.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,9 +23,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(AuthRequest request) {
-        // Simplified login for demo/development - no password check
+        // Authenticate with real password verification via Spring Security
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getUsername(),
+                        request.getPassword()
+                )
+        );
+
+        // If authentication succeeds, fetch the user and generate a real JWT
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BadRequestException("User not found: " + request.getUsername()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + request.getUsername()));
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 

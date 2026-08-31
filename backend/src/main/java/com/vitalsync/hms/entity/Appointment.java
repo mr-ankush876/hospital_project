@@ -42,8 +42,15 @@ public class Appointment {
     private String notes;
 
     @Column(nullable = false, length = 20)
-    private String status = "Scheduled"; // Scheduled, Confirmed, In Progress, Urgent, Completed, Cancelled
+    private String status = "Scheduled";
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

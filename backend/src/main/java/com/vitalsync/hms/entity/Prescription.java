@@ -50,6 +50,13 @@ public class Prescription {
     @JoinColumn(name = "prescription_id")
     private List<PrescriptionMedicine> medicines = new ArrayList<>();
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

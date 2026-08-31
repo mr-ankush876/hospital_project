@@ -32,6 +32,13 @@ public class User {
     @Column(nullable = false, length = 20)
     private String role; // ADMIN, DOCTOR, RECEPTIONIST
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

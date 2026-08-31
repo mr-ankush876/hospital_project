@@ -6,7 +6,7 @@ import VitalSyncLogo from '../components/common/VitalSyncLogo';
 
 const Login = () => {
   const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('123456');
+  const [password, setPassword] = useState('password123');
   const [showPass, setShowPass] = useState(false);
   const { login, loading } = useAuth();
   const toast = useToast();
@@ -14,11 +14,13 @@ const Login = () => {
 
   const handleLoginWith = async (userToLogin, passToLogin) => {
     const finalUser = userToLogin || 'admin';
-    const result = await login(finalUser, passToLogin || '123');
+    const result = await login(finalUser, passToLogin || 'password123');
     
     if (result.success) {
       toast.success(`Welcome, ${result.user?.fullName || finalUser}!`);
       navigate('/dashboard');
+    } else {
+      toast.error(result.error || 'Login failed. Please check credentials.');
     }
   };
 
@@ -50,7 +52,7 @@ const Login = () => {
           <div className="mb-6">
             <h2 className="font-headline-md text-headline-md text-on-surface">Quick Sign In</h2>
             <p className="text-xs text-on-surface-variant mt-1">
-              Enter any text or click below to login instantly
+              Sign in with your credentials
             </p>
           </div>
 
@@ -124,7 +126,7 @@ const Login = () => {
               <button
                 key={cred.username}
                 type="button"
-                onClick={() => handleLoginWith(cred.username, '123')}
+                onClick={() => handleLoginWith(cred.username, 'password123')}
                 className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group hover:scale-[1.01] active:scale-[0.99] cursor-pointer ${cred.color}`}
               >
                 <div>
