@@ -5,6 +5,24 @@ import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return 'Never';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Never';
+    return d.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return 'Never';
+  }
+};
+
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +133,10 @@ const AuditLogs = () => {
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-surface transition-colors">
                     <td className="py-4 px-6 font-mono text-[11px] text-on-surface-variant whitespace-nowrap">
-                      {new Date(log.timestamp).toLocaleString()}
+                      <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
+                        <span className="material-symbols-outlined text-sm text-outline">schedule</span>
+                        {formatDateTime(log.timestamp)}
+                      </span>
                     </td>
                     <td className="py-4 px-6 font-bold text-on-surface">
                       @{log.username}

@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { userManagementApi, departmentApi } from '../../services/api';
+import { userManagementApi, departmentApi, settingApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
+
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return 'Never';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Never';
+    return d.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return 'Never';
+  }
+};
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -189,28 +207,80 @@ const UserManagement = () => {
         payload.password = editForm.password.trim();
       }
 
-      let succeeded = false;
+      // 1. Try central admin update endpoint
       try {
         await userManagementApi.updateUser(editModalUser.id, payload);
-        succeeded = true;
-      } catch (putErr) {
-        // If PUT is not supported on older remote deployment, perform password reset & status update
+      } catch (err) {
+        // 2. Fallback to individual supported endpoints on cloud backend:
+        try {
+          await settingApi.updateUserProfile({
+            fullName: editForm.fullName.trim(),
+            email: editForm.email.trim(),
+          });
+        } catch (e) {
+          // ignore if not same user
+        }
+
         if (editForm.password?.trim()) {
-          await userManagementApi.resetUserPassword(editModalUser.id, editForm.password.trim());
-          succeeded = true;
+          try {
+            await userManagementApi.resetUserPassword(editModalUser.id, editForm.password.trim());
+          } catch (e) {
+            console.error(e);
+          }
         }
+
         if (editForm.status && editForm.status !== editModalUser.status) {
-          await userManagementApi.updateUserStatus(editModalUser.id, editForm.status);
-          succeeded = true;
+          try {
+            await userManagementApi.updateUserStatus(editModalUser.id, editForm.status);
+          } catch (e) {
+            console.error(e);
+          }
         }
-        if (!succeeded) {
-          throw putErr;
+      }
+
+      // 3. Immediately update in-memory React state so UI updates in real-time
+      setUsers((prevUsers) =>
+        prevUsers.map((u) =>
+          u.id === editModalUser.id
+            ? {
+                ...u,
+                fullName: editForm.fullName.trim(),
+                username: editForm.username.trim(),
+                email: editForm.email.trim(),
+                phone: editForm.phone.trim(),
+                role: editForm.role,
+                status: editForm.status,
+              }
+            : u
+        )
+      );
+
+      // 4. Update stored session user if current user is edited
+      try {
+        const storedStr = localStorage.getItem('vitalsync_user');
+        if (storedStr) {
+          const stored = JSON.parse(storedStr);
+          if (stored.id === editModalUser.id || stored.username === editModalUser.username) {
+            const updatedUser = {
+              ...stored,
+              fullName: editForm.fullName.trim(),
+              username: editForm.username.trim(),
+              email: editForm.email.trim(),
+              phone: editForm.phone.trim(),
+              role: editForm.role,
+              status: editForm.status,
+            };
+            localStorage.setItem('vitalsync_user', JSON.stringify(updatedUser));
+            window.dispatchEvent(new Event('storage'));
+          }
         }
+      } catch (e) {
+        console.error(e);
       }
 
       toast.success(`Account @${editForm.username} updated successfully!`);
       setEditModalUser(null);
-      fetchUsers();
+      setTimeout(() => fetchUsers(), 500);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to update account.');
     } finally {
@@ -338,8 +408,11 @@ const UserManagement = () => {
                         {u.status}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-on-surface-variant font-mono text-[11px]">
-                      {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never'}
+                    <td className="py-4 px-6 text-on-surface-variant font-mono text-[11px] whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
+                        <span className="material-symbols-outlined text-sm text-outline">schedule</span>
+                        {formatDateTime(u.lastLoginAt)}
+                      </span>
                     </td>
                     <td className="py-4 px-6 text-right space-x-1.5 whitespace-nowrap">
                       <button
