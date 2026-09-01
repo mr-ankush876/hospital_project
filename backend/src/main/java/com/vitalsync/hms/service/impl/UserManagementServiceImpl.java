@@ -134,6 +134,69 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
+    public UserDto updateUser(Long id, java.util.Map<String, Object> updates, String adminUsername) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        if (updates.containsKey("fullName") && updates.get("fullName") != null) {
+            user.setFullName(updates.get("fullName").toString().trim());
+        }
+
+        if (updates.containsKey("username") && updates.get("username") != null) {
+            String newUsername = updates.get("username").toString().trim();
+            if (!newUsername.equalsIgnoreCase(user.getUsername())) {
+                if (userRepository.existsByUsername(newUsername)) {
+                    throw new BadRequestException("Username '" + newUsername + "' is already taken");
+                }
+                user.setUsername(newUsername);
+            }
+        }
+
+        if (updates.containsKey("email") && updates.get("email") != null) {
+            String newEmail = updates.get("email").toString().trim();
+            if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+                if (userRepository.existsByEmail(newEmail)) {
+                    throw new BadRequestException("Email '" + newEmail + "' is already registered");
+                }
+                user.setEmail(newEmail);
+            }
+        }
+
+        if (updates.containsKey("phone") && updates.get("phone") != null) {
+            user.setPhone(updates.get("phone").toString().trim());
+        }
+
+        if (updates.containsKey("role") && updates.get("role") != null) {
+            String newRole = updates.get("role").toString().trim().toUpperCase();
+            if (VALID_ROLES.contains(newRole)) {
+                user.setRole(newRole);
+            }
+        }
+
+        if (updates.containsKey("status") && updates.get("status") != null) {
+            String newStatus = updates.get("status").toString().trim().toUpperCase();
+            if (VALID_STATUSES.contains(newStatus)) {
+                user.setStatus(newStatus);
+            }
+        }
+
+        if (updates.containsKey("password") && updates.get("password") != null) {
+            String newPassword = updates.get("password").toString();
+            if (newPassword.length() >= 6) {
+                user.setPassword(passwordEncoder.encode(newPassword));
+            }
+        }
+
+        User saved = userRepository.save(user);
+
+        auditLogService.logAction(adminUsername, "ADMIN", "UPDATE_USER_ACCOUNT", "User", saved.getId().toString(),
+                "Admin updated account details for " + saved.getUsername(), null);
+
+        return mapToDto(saved);
+    }
+
+    @Override
+    @Transactional
     public UserDto updateUserStatus(Long id, String status, String adminUsername) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));

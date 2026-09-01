@@ -136,6 +136,7 @@ export const userManagementApi = {
   getAllUsers: (params) => api.get('/admin/users', { params }),
   getUserById: (id) => api.get(`/admin/users/${id}`),
   createStaffAccount: (data) => api.post('/admin/users', data),
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
   updateUserStatus: (id, status) => api.patch(`/admin/users/${id}/status`, { status }),
   resetUserPassword: (id, newPassword) => api.post(`/admin/users/${id}/reset-password`, { newPassword }),
   getAuditLogs: (params) => api.get('/admin/audit-logs', { params }),

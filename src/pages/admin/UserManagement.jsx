@@ -37,6 +37,19 @@ const UserManagement = () => {
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
 
+  // Edit User Modal State
+  const [editModalUser, setEditModalUser] = useState(null);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    username: '',
+    email: '',
+    phone: '',
+    role: 'DOCTOR',
+    status: 'ACTIVE',
+    password: '',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const toast = useToast();
 
   const fetchUsers = async () => {
@@ -134,6 +147,56 @@ const UserManagement = () => {
       toast.error('Failed to reset password.');
     } finally {
       setResetting(false);
+    }
+  };
+
+  const openEditModal = (u) => {
+    setEditModalUser(u);
+    setEditForm({
+      fullName: u.fullName || '',
+      username: u.username || '',
+      email: u.email || '',
+      phone: u.phone || '',
+      role: u.role || 'PATIENT',
+      status: u.status || 'ACTIVE',
+      password: '',
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editForm.username.trim() || !editForm.fullName.trim() || !editForm.email.trim()) {
+      toast.error('Please complete all required fields.');
+      return;
+    }
+
+    if (editForm.password && editForm.password.length < 6) {
+      toast.error('Password must be at least 6 characters if provided.');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const payload = {
+        fullName: editForm.fullName.trim(),
+        username: editForm.username.trim(),
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim(),
+        role: editForm.role,
+        status: editForm.status,
+      };
+      if (editForm.password.trim()) {
+        payload.password = editForm.password.trim();
+      }
+
+      await userManagementApi.updateUser(editModalUser.id, payload);
+      toast.success(`Account @${editForm.username} updated successfully!`);
+      setEditModalUser(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update account.');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -260,23 +323,38 @@ const UserManagement = () => {
                     <td className="py-4 px-6 text-on-surface-variant font-mono text-[11px]">
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never'}
                     </td>
-                    <td className="py-4 px-6 text-right space-x-2">
+                    <td className="py-4 px-6 text-right space-x-1.5 whitespace-nowrap">
                       <button
-                        onClick={() => handleStatusToggle(u.id, u.status)}
-                        className={`text-xs font-bold px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                          u.status === 'ACTIVE'
-                            ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                        }`}
+                        onClick={() => openEditModal(u)}
+                        className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        title="Edit User Account"
                       >
-                        {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                        <span>Edit</span>
                       </button>
 
                       <button
                         onClick={() => setResetModalUser(u)}
-                        className="bg-surface border border-outline-variant hover:border-primary/40 text-on-surface text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1 bg-surface border border-outline-variant hover:border-primary/40 text-on-surface text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        title="Reset Password"
                       >
-                        Reset Pass
+                        <span className="material-symbols-outlined text-sm">key</span>
+                        <span>Password</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleStatusToggle(u.id, u.status)}
+                        className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                          u.status === 'ACTIVE'
+                            ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                        }`}
+                        title={u.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          {u.status === 'ACTIVE' ? 'person_off' : 'check_circle'}
+                        </span>
+                        <span>{u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</span>
                       </button>
                     </td>
                   </tr>
@@ -480,16 +558,162 @@ const UserManagement = () => {
                 <button
                   type="button"
                   onClick={() => setResetModalUser(null)}
-                  className="px-3 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high"
+                  className="px-3 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={resetting}
-                  className="bg-primary text-on-primary font-bold text-xs px-4 py-2 rounded-xl hover:bg-primary-container"
+                  className="bg-primary text-on-primary font-bold text-xs px-4 py-2 rounded-xl hover:bg-primary-container cursor-pointer"
                 >
                   {resetting ? 'Resetting...' : 'Save New Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Account Modal */}
+      {editModalUser && (
+        <div className="fixed inset-0 bg-inverse-surface/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl w-full max-w-lg p-6 sm:p-8 space-y-4 max-h-[90vh] overflow-y-auto animate-scale-up">
+            <div className="flex items-center justify-between border-b border-surface-variant pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">edit</span>
+                <h3 className="font-headline-md text-headline-md text-on-surface">
+                  Edit Account: @{editModalUser.username}
+                </h3>
+              </div>
+              <button onClick={() => setEditModalUser(null)} className="text-outline hover:text-on-surface cursor-pointer">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.fullName}
+                    onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.username}
+                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Account Role
+                  </label>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-bold text-on-surface focus:outline-none focus:border-primary"
+                  >
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="DOCTOR">DOCTOR</option>
+                    <option value="RECEPTIONIST">RECEPTIONIST</option>
+                    <option value="PATIENT">PATIENT</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-bold text-on-surface focus:outline-none focus:border-primary"
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="SUSPENDED">SUSPENDED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                  Change Password (Optional — leave blank to keep existing password)
+                </label>
+                <input
+                  type="password"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  placeholder="Enter new password (min 6 chars)"
+                  className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-surface-variant flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditModalUser(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="bg-primary text-on-primary font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-primary-container disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  {savingEdit ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-sm">save</span>
+                      <span>Save Changes</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

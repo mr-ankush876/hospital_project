@@ -61,6 +61,15 @@ public class UserManagementController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    @PutMapping("/users/{id}")
+    public ResponseEntity<UserDto> updateUser(
+            Authentication authentication,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+        UserDto updated = userManagementService.updateUser(id, updates, authentication.getName());
+        return ResponseEntity.ok(updated);
+    }
+
     @PatchMapping("/users/{id}/status")
     public ResponseEntity<UserDto> updateUserStatus(
             Authentication authentication,
