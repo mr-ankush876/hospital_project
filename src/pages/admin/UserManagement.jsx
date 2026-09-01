@@ -189,7 +189,25 @@ const UserManagement = () => {
         payload.password = editForm.password.trim();
       }
 
-      await userManagementApi.updateUser(editModalUser.id, payload);
+      let succeeded = false;
+      try {
+        await userManagementApi.updateUser(editModalUser.id, payload);
+        succeeded = true;
+      } catch (putErr) {
+        // If PUT is not supported on older remote deployment, perform password reset & status update
+        if (editForm.password?.trim()) {
+          await userManagementApi.resetUserPassword(editModalUser.id, editForm.password.trim());
+          succeeded = true;
+        }
+        if (editForm.status && editForm.status !== editModalUser.status) {
+          await userManagementApi.updateUserStatus(editModalUser.id, editForm.status);
+          succeeded = true;
+        }
+        if (!succeeded) {
+          throw putErr;
+        }
+      }
+
       toast.success(`Account @${editForm.username} updated successfully!`);
       setEditModalUser(null);
       fetchUsers();
