@@ -26,8 +26,8 @@ if exist "%USERPROFILE%\.tools\jdk-17*\bin\java.exe" (
     )
 )
 
-echo [*] Starting Spring Boot on http://localhost:8080 ...
-call mvnw.cmd spring-boot:run
+echo [*] Starting Spring Boot on http://localhost:8080 (MySQL Profile) ...
+call mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=mysql
 if %errorlevel% neq 0 (
     echo [ERROR] Backend failed to start.
     pause
