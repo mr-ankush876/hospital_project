@@ -93,8 +93,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/public-departments" element={<PublicDepartments />} />
             <Route path="/public-beds" element={<PublicBeds />} />
             <Route path="/services" element={<PublicServices />} />
-            <Route path="/emergency" element={<PublicEmergency />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/admin/login" element={<Navigate to="/login?portal=admin" replace />} />
+            <Route path="/admin-login" element={<Navigate to="/login?portal=admin" replace />} />
 
             {/* 2. Patient Self-Service Portal */}
             <Route

@@ -36,7 +36,7 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("Admin Login Success with valid JWT token returned")
     void testAdminLoginSuccess() throws Exception {
-        AuthRequest request = new AuthRequest("admin", "password123");
+        AuthRequest request = new AuthRequest("admin", "Admin@2026");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

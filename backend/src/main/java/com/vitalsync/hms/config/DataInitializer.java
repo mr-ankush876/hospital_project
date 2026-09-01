@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -35,6 +36,12 @@ public class DataInitializer implements CommandLineRunner {
     private final HospitalSettingRepository hospitalSettingRepository;
     private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.username:admin}")
+    private String adminUsername;
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.password:Admin@2026}")
+    private String adminPassword;
 
     @Override
     @Transactional
@@ -57,6 +64,9 @@ public class DataInitializer implements CommandLineRunner {
             seedAuditLogs();
             log.info("Database seeding completed successfully!");
         } else {
+            // Ensure admin credentials always match configuration
+            ensureAdminUser();
+
             // If departments or beds are missing in existing DB, initialize them
             if (bedRepository.count() == 0) {
                 seedBeds();
@@ -64,6 +74,33 @@ public class DataInitializer implements CommandLineRunner {
             if (medicalReportRepository.count() == 0) {
                 seedMedicalReports();
             }
+        }
+    }
+
+    private void ensureAdminUser() {
+        Optional<User> adminOpt = userRepository.findAll().stream()
+                .filter(u -> "ADMIN".equalsIgnoreCase(u.getRole()))
+                .findFirst();
+
+        if (adminOpt.isPresent()) {
+            User admin = adminOpt.get();
+            admin.setUsername(adminUsername);
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            admin.setStatus("ACTIVE");
+            userRepository.save(admin);
+            log.info("Admin account credentials synchronized: username='{}'", adminUsername);
+        } else {
+            User admin = User.builder()
+                    .username(adminUsername)
+                    .password(passwordEncoder.encode(adminPassword))
+                    .email("admin@vitalsync.com")
+                    .fullName("Hospital Administrator")
+                    .phone("+1 (555) 321-7654")
+                    .role("ADMIN")
+                    .status("ACTIVE")
+                    .build();
+            userRepository.save(admin);
+            log.info("Admin account created with username='{}'", adminUsername);
         }
     }
 
@@ -103,8 +140,8 @@ public class DataInitializer implements CommandLineRunner {
         String encodedPassword = passwordEncoder.encode("password123");
 
         User admin = User.builder()
-                .username("admin")
-                .password(encodedPassword)
+                .username(adminUsername)
+                .password(passwordEncoder.encode(adminPassword))
                 .email("admin@vitalsync.com")
                 .fullName("Dr. Sarah Mitchell (Administrator)")
                 .phone("+1 (555) 321-7654")
