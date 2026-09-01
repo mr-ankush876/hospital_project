@@ -61,7 +61,7 @@ public class UserManagementController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    @PutMapping("/users/{id}")
+    @RequestMapping(value = "/users/{id}", method = {RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.POST})
     public ResponseEntity<UserDto> updateUser(
             Authentication authentication,
             @PathVariable Long id,

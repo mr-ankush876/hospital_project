@@ -40,7 +40,7 @@ public class SettingController {
         return ResponseEntity.ok(user);
     }
 
-    @PutMapping("/user")
+    @RequestMapping(value = "/user", method = {RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.POST})
     public ResponseEntity<UserDto> updateUserProfile(
             Authentication authentication,
             @Valid @RequestBody UserProfileUpdateRequest request) {
