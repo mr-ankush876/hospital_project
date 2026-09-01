@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import StatusBadge from '../common/StatusBadge';
-import { patientApi, doctorApi, appointmentApi } from '../../services/api';
+import { searchApi } from '../../services/api';
 
 const Topbar = ({ onOpenMobile }) => {
   const { user, logout } = useAuth();
@@ -13,7 +13,15 @@ const Topbar = ({ onOpenMobile }) => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState({ patients: [], doctors: [], appointments: [] });
+  const [searchResults, setSearchResults] = useState({
+    users: [],
+    patients: [],
+    doctors: [],
+    appointments: [],
+    prescriptions: [],
+    bills: [],
+    departments: []
+  });
   const [searching, setSearching] = useState(false);
 
   const profileRef = useRef(null);
@@ -34,39 +42,40 @@ const Topbar = ({ onOpenMobile }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle global quick search
+  // Handle global quick search backed by MySQL
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults({ patients: [], doctors: [], appointments: [] });
+      setSearchResults({
+        users: [],
+        patients: [],
+        doctors: [],
+        appointments: [],
+        prescriptions: [],
+        bills: [],
+        departments: []
+      });
       return;
     }
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const [pRes, dRes, aRes] = await Promise.allSettled([
-          patientApi.getAll({ search: searchQuery }),
-          doctorApi.getAll({ search: searchQuery }),
-          appointmentApi.getAll({ search: searchQuery }),
-        ]);
-
-        const getArray = (res) => {
-          if (res.status === 'fulfilled' && res.value?.data) {
-            return Array.isArray(res.value.data) ? res.value.data : res.value.data.content || [];
-          }
-          return [];
-        };
-
+        const res = await searchApi.globalSearch(searchQuery.trim());
+        const data = res.data || {};
         setSearchResults({
-          patients: getArray(pRes).slice(0, 4),
-          doctors: getArray(dRes).slice(0, 4),
-          appointments: getArray(aRes).slice(0, 4),
+          users: data.users || [],
+          patients: data.patients || [],
+          doctors: data.doctors || [],
+          appointments: data.appointments || [],
+          prescriptions: data.prescriptions || [],
+          bills: data.bills || [],
+          departments: data.departments || []
         });
       } catch (err) {
         console.error('Global search error:', err);
       } finally {
         setSearching(false);
       }
-    }, 300);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -79,8 +88,20 @@ const Topbar = ({ onOpenMobile }) => {
   const getPageTitle = () => {
     const path = location.pathname.replace('/', '');
     if (!path || path === 'dashboard') return 'Clinical Dashboard';
+    if (path.startsWith('patient/')) return 'Patient Portal';
+    if (path.startsWith('doctor/')) return 'Doctor Portal';
+    if (path.startsWith('admin/')) return 'Administration';
     return path.charAt(0).toUpperCase() + path.slice(1) + ' Management';
   };
+
+  const hasAnyResults =
+    searchResults.users.length > 0 ||
+    searchResults.patients.length > 0 ||
+    searchResults.doctors.length > 0 ||
+    searchResults.appointments.length > 0 ||
+    searchResults.prescriptions.length > 0 ||
+    searchResults.bills.length > 0 ||
+    searchResults.departments.length > 0;
 
   return (
     <>
@@ -109,12 +130,12 @@ const Topbar = ({ onOpenMobile }) => {
                 setSearchOpen(true);
                 setTimeout(() => searchInputRef.current?.focus(), 100);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:border-primary/40 rounded-full text-on-surface-variant text-xs md:text-sm font-medium transition-all shadow-sm group"
+              className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant hover:border-primary/40 rounded-full text-on-surface-variant text-xs md:text-sm font-medium transition-all shadow-sm group cursor-pointer"
             >
               <span className="material-symbols-outlined text-lg text-outline group-hover:text-primary transition-colors">
                 search
               </span>
-              <span className="hidden sm:inline text-outline group-hover:text-on-surface">Search records...</span>
+              <span className="hidden sm:inline text-outline group-hover:text-on-surface">Search hospital database...</span>
               <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] bg-surface-container-high border border-outline-variant rounded font-mono text-outline">
                 /
               </kbd>
@@ -125,7 +146,7 @@ const Topbar = ({ onOpenMobile }) => {
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setNotifOpen(!notifOpen)}
-              className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full transition-all relative"
+              className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full transition-all relative cursor-pointer"
               aria-label="View notifications"
             >
               <span className="material-symbols-outlined text-xl">notifications</span>
@@ -147,10 +168,10 @@ const Topbar = ({ onOpenMobile }) => {
                   <div className="p-2.5 rounded-xl bg-surface border border-outline-variant/50 hover:bg-surface-container-low transition-colors">
                     <p className="font-semibold text-on-surface flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      System Online & Ready
+                      Database Online & Ready
                     </p>
                     <p className="text-on-surface-variant text-[11px] mt-0.5">
-                      VitalSync secure clinical database connected.
+                      VitalSync MySQL persistence connected.
                     </p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-surface border border-outline-variant/50 hover:bg-surface-container-low transition-colors">
@@ -159,7 +180,7 @@ const Topbar = ({ onOpenMobile }) => {
                       Appointments Active
                     </p>
                     <p className="text-on-surface-variant text-[11px] mt-0.5">
-                      Check today's appointment schedule for real-time updates.
+                      Check appointment schedule for real-time updates.
                     </p>
                   </div>
                 </div>
@@ -171,7 +192,7 @@ const Topbar = ({ onOpenMobile }) => {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 p-1 rounded-full hover:bg-surface-container-high transition-all"
+              className="flex items-center gap-2 p-1 rounded-full hover:bg-surface-container-high transition-all cursor-pointer"
               aria-label="User menu"
             >
               <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-primary-container text-white font-bold flex items-center justify-center text-xs shadow-sm ring-2 ring-primary/20">
@@ -190,16 +211,16 @@ const Topbar = ({ onOpenMobile }) => {
                 </div>
                 <div className="space-y-1 text-sm font-medium">
                   <Link
-                    to="/settings"
+                    to={user?.role === 'PATIENT' ? '/patient/profile' : user?.role === 'DOCTOR' ? '/doctor/profile' : '/settings'}
                     onClick={() => setProfileOpen(false)}
                     className="w-full text-left px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface hover:text-on-surface transition-colors flex items-center gap-2.5"
                   >
                     <span className="material-symbols-outlined text-base">manage_accounts</span>
-                    <span>Account Settings</span>
+                    <span>Account Profile</span>
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2.5"
+                    className="w-full text-left px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2.5 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-base">logout</span>
                     <span>Sign Out</span>
@@ -214,7 +235,7 @@ const Topbar = ({ onOpenMobile }) => {
       {/* Global Search Modal */}
       {searchOpen && (
         <div
-          className="fixed inset-0 bg-inverse-surface/60 backdrop-blur-sm z-50 flex items-start justify-center pt-20 p-4"
+          className="fixed inset-0 bg-inverse-surface/60 backdrop-blur-sm z-50 flex items-start justify-center pt-16 sm:pt-20 p-4"
           onClick={() => setSearchOpen(false)}
         >
           <div
@@ -229,15 +250,15 @@ const Topbar = ({ onOpenMobile }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search patients, doctors, appointments..."
-                className="w-full bg-transparent text-on-surface placeholder:text-outline font-medium text-base focus:outline-none"
+                placeholder="Search database (users, doctors, patients, appointments, prescriptions, bills)..."
+                className="w-full bg-transparent text-on-surface placeholder:text-outline font-medium text-sm sm:text-base focus:outline-none"
               />
               {searching && (
                 <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
               )}
               <button
                 onClick={() => setSearchOpen(false)}
-                className="p-1 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors"
+                className="p-1 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-xl">close</span>
               </button>
@@ -248,42 +269,47 @@ const Topbar = ({ onOpenMobile }) => {
               {!searchQuery.trim() ? (
                 <div className="text-center py-8 text-on-surface-variant text-sm">
                   <span className="material-symbols-outlined text-3xl text-outline mb-2">manage_search</span>
-                  <p>Type to search clinical records across patients, doctors, and appointments.</p>
+                  <p>Type keywords to search live hospital records from MySQL database.</p>
                 </div>
-              ) : searchResults.patients.length === 0 &&
-                searchResults.doctors.length === 0 &&
-                searchResults.appointments.length === 0 &&
-                !searching ? (
+              ) : !hasAnyResults && !searching ? (
                 <div className="text-center py-8 text-on-surface-variant text-sm">
                   <p className="font-semibold text-on-surface">No matches found for "{searchQuery}"</p>
-                  <p className="text-xs text-outline mt-1">Try searching by patient name, phone number, doctor or code.</p>
+                  <p className="text-xs text-outline mt-1">Try searching by name, ID, code, phone, email, specialization, or status.</p>
                 </div>
               ) : (
                 <>
-                  {/* Patients */}
-                  {searchResults.patients.length > 0 && (
+                  {/* Users (Admin Only) */}
+                  {searchResults.users.length > 0 && (
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Patients</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-primary">manage_accounts</span>
+                        System Users ({searchResults.users.length})
+                      </p>
                       <div className="space-y-1.5">
-                        {searchResults.patients.map((p) => (
+                        {searchResults.users.map((u) => (
                           <div
-                            key={p.id}
+                            key={u.id}
                             onClick={() => {
                               setSearchOpen(false);
-                              navigate('/patients');
+                              navigate('/admin/users');
                             }}
-                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/30 flex items-center justify-between cursor-pointer transition-colors"
+                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/40 flex items-center justify-between cursor-pointer transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
-                                {p.fullName?.substring(0, 2).toUpperCase()}
+                                {u.fullName?.substring(0, 2).toUpperCase() || 'U'}
                               </span>
                               <div>
-                                <p className="text-sm font-semibold text-on-surface">{p.fullName}</p>
-                                <p className="text-xs text-on-surface-variant">{p.patientCode} • {p.phone}</p>
+                                <p className="text-sm font-semibold text-on-surface">{u.fullName} <span className="font-mono text-xs text-outline">(@{u.username})</span></p>
+                                <p className="text-xs text-on-surface-variant">{u.email} • {u.phone || 'No phone'}</p>
                               </div>
                             </div>
-                            <span className="text-xs text-primary font-semibold hover:underline">View in Patients &rarr;</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-container-high border border-outline-variant uppercase">
+                                {u.role}
+                              </span>
+                              <StatusBadge status={u.status} size="xs" />
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -293,16 +319,23 @@ const Topbar = ({ onOpenMobile }) => {
                   {/* Doctors */}
                   {searchResults.doctors.length > 0 && (
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Doctors</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-emerald-600">stethoscope</span>
+                        Doctors ({searchResults.doctors.length})
+                      </p>
                       <div className="space-y-1.5">
                         {searchResults.doctors.map((d) => (
                           <div
                             key={d.id}
                             onClick={() => {
                               setSearchOpen(false);
-                              navigate('/doctors');
+                              if (user?.role === 'PATIENT') {
+                                navigate('/patient/book-appointment');
+                              } else {
+                                navigate('/doctors');
+                              }
                             }}
-                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/30 flex items-center justify-between cursor-pointer transition-colors"
+                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/40 flex items-center justify-between cursor-pointer transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center">
@@ -310,10 +343,47 @@ const Topbar = ({ onOpenMobile }) => {
                               </span>
                               <div>
                                 <p className="text-sm font-semibold text-on-surface">{d.fullName}</p>
-                                <p className="text-xs text-on-surface-variant">{d.specialization} • {d.doctorCode}</p>
+                                <p className="text-xs text-on-surface-variant">{d.specialization} • {d.doctorCode} • {d.qualification}</p>
                               </div>
                             </div>
-                            <span className="text-xs text-primary font-semibold hover:underline">View in Doctors &rarr;</span>
+                            <StatusBadge status={d.status} size="xs" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Patients */}
+                  {searchResults.patients.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-primary">person</span>
+                        Patients ({searchResults.patients.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {searchResults.patients.map((p) => (
+                          <div
+                            key={p.id}
+                            onClick={() => {
+                              setSearchOpen(false);
+                              if (user?.role === 'DOCTOR') {
+                                navigate('/doctor/patients');
+                              } else {
+                                navigate('/patients');
+                              }
+                            }}
+                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/40 flex items-center justify-between cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
+                                {p.fullName?.substring(0, 2).toUpperCase()}
+                              </span>
+                              <div>
+                                <p className="text-sm font-semibold text-on-surface">{p.fullName}</p>
+                                <p className="text-xs text-on-surface-variant">{p.patientCode} • {p.phone} • {p.bloodGroup || 'Blood: N/A'}</p>
+                              </div>
+                            </div>
+                            <StatusBadge status={p.status} size="xs" />
                           </div>
                         ))}
                       </div>
@@ -323,16 +393,25 @@ const Topbar = ({ onOpenMobile }) => {
                   {/* Appointments */}
                   {searchResults.appointments.length > 0 && (
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Appointments</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-purple-600">event</span>
+                        Appointments ({searchResults.appointments.length})
+                      </p>
                       <div className="space-y-1.5">
                         {searchResults.appointments.map((a) => (
                           <div
                             key={a.id}
                             onClick={() => {
                               setSearchOpen(false);
-                              navigate('/appointments');
+                              if (user?.role === 'PATIENT') {
+                                navigate('/patient/appointments');
+                              } else if (user?.role === 'DOCTOR') {
+                                navigate('/doctor/appointments');
+                              } else {
+                                navigate('/appointments');
+                              }
                             }}
-                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/30 flex items-center justify-between cursor-pointer transition-colors"
+                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/40 flex items-center justify-between cursor-pointer transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <span className="material-symbols-outlined text-purple-600 bg-purple-50 p-1.5 rounded-lg text-lg">
@@ -340,12 +419,94 @@ const Topbar = ({ onOpenMobile }) => {
                               </span>
                               <div>
                                 <p className="text-sm font-semibold text-on-surface">
-                                  {a.patient?.fullName || a.patientName || 'Patient'} with {a.doctor?.fullName || a.doctorName || 'Doctor'}
+                                  {a.patientName || a.patient?.fullName || 'Patient'} with {a.doctorName || a.doctor?.fullName || 'Doctor'}
                                 </p>
                                 <p className="text-xs text-on-surface-variant">{a.appointmentCode} • {a.appointmentDate} at {a.appointmentTime}</p>
                               </div>
                             </div>
                             <StatusBadge status={a.status} size="xs" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Prescriptions */}
+                  {searchResults.prescriptions.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-teal-600">prescriptions</span>
+                        Prescriptions ({searchResults.prescriptions.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {searchResults.prescriptions.map((rx) => (
+                          <div
+                            key={rx.id}
+                            onClick={() => {
+                              setSearchOpen(false);
+                              if (user?.role === 'PATIENT') {
+                                navigate('/patient/prescriptions');
+                              } else {
+                                navigate('/prescriptions');
+                              }
+                            }}
+                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/40 flex items-center justify-between cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="material-symbols-outlined text-teal-600 bg-teal-50 p-1.5 rounded-lg text-lg">
+                                medical_services
+                              </span>
+                              <div>
+                                <p className="text-sm font-semibold text-on-surface">
+                                  {rx.prescriptionCode} • {rx.diagnosis}
+                                </p>
+                                <p className="text-xs text-on-surface-variant">
+                                  Patient: {rx.patientName || rx.patient?.fullName} • Dr. {rx.doctorName || rx.doctor?.fullName} ({rx.prescriptionDate})
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-primary font-semibold hover:underline">View Rx &rarr;</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bills */}
+                  {searchResults.bills.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-amber-600">receipt_long</span>
+                        Invoices & Bills ({searchResults.bills.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {searchResults.bills.map((b) => (
+                          <div
+                            key={b.id}
+                            onClick={() => {
+                              setSearchOpen(false);
+                              if (user?.role === 'PATIENT') {
+                                navigate('/patient/billing');
+                              } else {
+                                navigate('/billing');
+                              }
+                            }}
+                            className="p-2.5 rounded-xl hover:bg-surface border border-outline-variant/40 flex items-center justify-between cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="material-symbols-outlined text-amber-600 bg-amber-50 p-1.5 rounded-lg text-lg">
+                                payments
+                              </span>
+                              <div>
+                                <p className="text-sm font-semibold text-on-surface">
+                                  {b.billCode} • {b.patientName || b.patient?.fullName}
+                                </p>
+                                <p className="text-xs text-on-surface-variant">
+                                  Amount: ${b.totalAmount} • {b.paymentMethod} ({b.billDate})
+                                </p>
+                              </div>
+                            </div>
+                            <StatusBadge status={b.paymentStatus} size="xs" />
                           </div>
                         ))}
                       </div>

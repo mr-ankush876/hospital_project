@@ -23,7 +23,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
            "AND (:status IS NULL OR a.status = :status) " +
            "AND (:date IS NULL OR a.appointmentDate = :date) " +
            "AND (:search IS NULL OR LOWER(a.patient.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(a.patient.patientCode) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(a.doctor.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(a.doctor.specialization) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(a.reason) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(a.status) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(a.appointmentCode) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "ORDER BY a.appointmentDate DESC, a.appointmentTime ASC")
     List<Appointment> filterAppointments(
@@ -32,6 +36,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("status") String status,
             @Param("date") LocalDate date,
             @Param("search") String search);
+
+    @Query("SELECT a FROM Appointment a WHERE " +
+           ":query IS NULL OR LOWER(a.patient.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(a.patient.patientCode) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(a.doctor.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(a.doctor.specialization) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(a.reason) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(a.status) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(a.appointmentCode) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "ORDER BY a.appointmentDate DESC, a.appointmentTime ASC")
+    List<Appointment> searchByQuery(@Param("query") String query);
 
     @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE " +
            "a.doctor.id = :doctorId AND a.appointmentDate = :date AND a.appointmentTime = :time " +

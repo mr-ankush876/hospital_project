@@ -22,6 +22,9 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
            "AND (:status IS NULL OR b.paymentStatus = :status) " +
            "AND (:date IS NULL OR b.billDate = :date) " +
            "AND (:search IS NULL OR LOWER(b.patient.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(b.patient.patientCode) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(b.doctor.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(b.paymentStatus) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(b.billCode) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(b.paymentMethod) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "ORDER BY b.billDate DESC, b.id DESC")
@@ -30,6 +33,16 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
             @Param("status") String status,
             @Param("date") LocalDate date,
             @Param("search") String search);
+
+    @Query("SELECT b FROM Bill b WHERE " +
+           ":query IS NULL OR LOWER(b.patient.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(b.patient.patientCode) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(b.doctor.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(b.paymentStatus) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(b.billCode) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(b.paymentMethod) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "ORDER BY b.billDate DESC, b.id DESC")
+    List<Bill> searchByQuery(@Param("query") String query);
 
     @Query("SELECT COUNT(b) FROM Bill b WHERE b.paymentStatus = 'Pending'")
     long countPendingBills();

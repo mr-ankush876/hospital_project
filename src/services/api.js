@@ -204,4 +204,16 @@ export const settingApi = {
   changePassword: (data) => api.post('/settings/change-password', data),
 };
 
+// 17. Centralized Database Search Endpoints
+export const searchApi = {
+  globalSearch: (query) => api.get('/search', { params: { query } }),
+  searchUsers: (query) => api.get('/users/search', { params: { query } }),
+  searchPatients: (query) => api.get('/patients/search', { params: { query } }),
+  searchDoctors: (query) => api.get('/doctors/search', { params: { query } }),
+  searchAppointments: (query) => api.get('/appointments/search', { params: { query } }),
+  searchPrescriptions: (query) => api.get('/prescriptions/search', { params: { query } }),
+  searchBills: (query) => api.get('/bills/search', { params: { query } }),
+};
+
 export default api;
+

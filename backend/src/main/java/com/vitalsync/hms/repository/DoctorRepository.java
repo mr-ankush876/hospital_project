@@ -20,7 +20,10 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     @Query("SELECT d FROM Doctor d WHERE " +
            "(:search IS NULL OR LOWER(d.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(d.doctorCode) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(d.specialization) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "OR LOWER(d.specialization) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(d.qualification) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(d.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR d.phone LIKE CONCAT('%', :search, '%')) " +
            "AND (:specialization IS NULL OR d.specialization = :specialization) " +
            "AND (:status IS NULL OR d.status = :status) " +
            "ORDER BY d.id DESC")
@@ -32,7 +35,10 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     @Query("SELECT d FROM Doctor d WHERE " +
            "(:search IS NULL OR LOWER(d.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(d.doctorCode) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(d.specialization) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "OR LOWER(d.specialization) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(d.qualification) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(d.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR d.phone LIKE CONCAT('%', :search, '%')) " +
            "AND (:specialization IS NULL OR d.specialization = :specialization) " +
            "AND (:status IS NULL OR d.status = :status)")
     Page<Doctor> searchDoctorsPaged(
@@ -40,6 +46,16 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
             @Param("specialization") String specialization,
             @Param("status") String status,
             Pageable pageable);
+
+    @Query("SELECT d FROM Doctor d WHERE " +
+           ":query IS NULL OR LOWER(d.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(d.doctorCode) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(d.specialization) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(d.qualification) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(d.email) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR d.phone LIKE CONCAT('%', :query, '%') " +
+           "ORDER BY d.id DESC")
+    List<Doctor> searchByQuery(@Param("query") String query);
 
     @Query("SELECT COUNT(d) FROM Doctor d WHERE d.status = 'Available' OR d.status = 'In Surgery'")
     long countActiveDoctors();

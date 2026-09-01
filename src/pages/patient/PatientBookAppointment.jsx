@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { publicApi, patientPortalApi } from '../../services/api';
+import { publicApi, doctorApi, patientPortalApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Loader from '../../components/common/Loader';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 
-const timeSlots = [
-  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-  '12:00 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM'
+const standardTimeSlots = [
+  '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
+  '11:00 AM', '11:30 AM', '12:00 PM', '02:00 PM', '02:30 PM', '03:00 PM',
+  '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
 ];
 
 const PatientBookAppointment = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Form State
@@ -27,24 +31,40 @@ const PatientBookAppointment = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchDoctors = async () => {
+  const fetchDoctors = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let docList = [];
       try {
         const res = await publicApi.getDoctors();
-        const availableDocs = (res.data || []).filter(
-          (d) => !"Inactive".equalsIgnoreCase(d.status) && !"Unavailable".equalsIgnoreCase(d.status)
-        );
-        setDoctors(availableDocs);
-        if (availableDocs.length > 0) {
-          setSelectedDoctorId(availableDocs[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching doctors:', err);
-        toast.error('Failed to retrieve available doctor faculty.');
-      } finally {
-        setLoading(false);
+        docList = res.data || [];
+      } catch {
+        const fallbackRes = await doctorApi.getAll();
+        docList = Array.isArray(fallbackRes.data) ? fallbackRes.data : fallbackRes.data?.content || [];
       }
-    };
+
+      const availableDocs = docList.filter((d) => {
+        const s = (d.status || '').toLowerCase();
+        return s !== 'inactive' && s !== 'unavailable';
+      });
+
+      setDoctors(availableDocs);
+      if (availableDocs.length > 0) {
+        setSelectedDoctorId((prev) => prev && availableDocs.some((d) => String(d.id) === String(prev)) ? prev : String(availableDocs[0].id));
+      } else {
+        setSelectedDoctorId('');
+      }
+    } catch (err) {
+      console.error('Error fetching doctors:', err);
+      setError('Unable to load available attending physicians from the database.');
+      toast.error('Failed to retrieve available doctors.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDoctors();
   }, []);
 
@@ -54,12 +74,18 @@ const PatientBookAppointment = () => {
     e.preventDefault();
 
     if (!selectedDoctorId) {
-      toast.error('Please select a physician.');
+      toast.error('Please select an attending doctor.');
       return;
     }
 
     if (!appointmentDate) {
       toast.error('Please choose a valid appointment date.');
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (appointmentDate < todayStr) {
+      toast.error('Cannot book appointments on past dates.');
       return;
     }
 
@@ -75,21 +101,45 @@ const PatientBookAppointment = () => {
       };
 
       const res = await patientPortalApi.bookAppointment(payload);
-      toast.success(`Appointment confirmed! Reference Code: ${res.data?.appointmentCode}`);
+      toast.success(`Appointment confirmed! Reference Code: ${res.data?.appointmentCode || 'Confirmed'}`);
       navigate('/patient/appointments');
     } catch (err) {
       console.error('Booking error:', err);
-      toast.error(
+      const errorMsg =
         err?.response?.data?.message ||
-        'Unable to book appointment. Please try another time slot or physician.'
-      );
+        'Unable to book appointment. Please try another time slot or physician.';
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) {
-    return <Loader message="Loading doctor appointment schedule..." />;
+    return <Loader message="Loading available attending doctors from database..." />;
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={fetchDoctors} />;
+  }
+
+  if (doctors.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="space-y-1">
+          <h1 className="font-headline-lg text-headline-lg text-on-surface">Book Online Consultation</h1>
+          <p className="text-xs text-on-surface-variant">
+            Schedule an in-person clinical evaluation with our specialist medical faculty.
+          </p>
+        </div>
+        <EmptyState
+          icon="medical_services"
+          title="No Doctors Available"
+          description="There are currently no active doctors available for appointment scheduling. Please try again later."
+          actionLabel="Retry Loading"
+          onAction={fetchDoctors}
+        />
+      </div>
+    );
   }
 
   return (
@@ -98,7 +148,7 @@ const PatientBookAppointment = () => {
       <div className="space-y-1">
         <h1 className="font-headline-lg text-headline-lg text-on-surface">Book Online Consultation</h1>
         <p className="text-xs text-on-surface-variant">
-          Schedule an in-person or clinical evaluation with our medical specialists. Real-time availability verified on database.
+          Schedule an in-person or clinical evaluation with our medical specialists. Real-time availability verified on MySQL database.
         </p>
       </div>
 
@@ -151,7 +201,7 @@ const PatientBookAppointment = () => {
                   onChange={(e) => setAppointmentTime(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
                 >
-                  {timeSlots.map((slot) => (
+                  {standardTimeSlots.map((slot) => (
                     <option key={slot} value={slot}>
                       {slot}
                     </option>
@@ -226,7 +276,7 @@ const PatientBookAppointment = () => {
                 </div>
 
                 <div className="p-3 rounded-xl bg-surface border border-outline-variant/50 space-y-1.5">
-                  <p><strong>Qualification:</strong> {selectedDoctor.qualification}</p>
+                  <p><strong>Qualification:</strong> {selectedDoctor.qualification || 'MD / MBBS'}</p>
                   <p><strong>Experience:</strong> {selectedDoctor.experience || '10+ Years'}</p>
                   <p><strong>Working Days:</strong> {selectedDoctor.availableDays || 'Mon - Fri'}</p>
                   <p><strong>Hours:</strong> {selectedDoctor.availableTime || '09:00 AM - 05:00 PM'}</p>
@@ -247,7 +297,7 @@ const PatientBookAppointment = () => {
           <div className="p-3 bg-surface rounded-xl border border-outline-variant/40 text-[11px] text-on-surface-variant">
             <p className="flex items-center gap-1 font-semibold text-on-surface mb-1">
               <span className="material-symbols-outlined text-sm text-emerald-600">verified</span>
-              <span>Instant Confirmation</span>
+              <span>Instant MySQL Confirmation</span>
             </p>
             <p>Your booking is instantly synchronized into the attending doctor's clinical consultation queue.</p>
           </div>

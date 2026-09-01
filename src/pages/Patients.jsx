@@ -51,14 +51,22 @@ const Patients = () => {
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchPatients();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search, statusFilter, genderFilter, bloodFilter]);
 
   const fetchPatients = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await patientApi.getAll();
+      const res = await patientApi.getAll({
+        search: search || undefined,
+        status: statusFilter || undefined,
+        gender: genderFilter || undefined,
+        bloodGroup: bloodFilter || undefined,
+      });
       setPatients(Array.isArray(res.data) ? res.data : res.data?.content || []);
     } catch (err) {
       console.error('Failed to fetch patients:', err);
@@ -69,19 +77,7 @@ const Patients = () => {
     }
   };
 
-  const filtered = patients.filter((p) => {
-    const q = search.toLowerCase();
-    const nameMatch = (p.fullName || '').toLowerCase().includes(q);
-    const codeMatch = (p.patientCode || '').toLowerCase().includes(q);
-    const phoneMatch = (p.phone || '').includes(search);
-
-    const matchesSearch = !search || nameMatch || codeMatch || phoneMatch;
-    const matchesStatus = !statusFilter || p.status === statusFilter;
-    const matchesGender = !genderFilter || p.gender === genderFilter;
-    const matchesBlood = !bloodFilter || p.bloodGroup === bloodFilter;
-
-    return matchesSearch && matchesStatus && matchesGender && matchesBlood;
-  });
+  const filtered = patients;
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedPatients = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);

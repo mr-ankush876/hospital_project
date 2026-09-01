@@ -27,7 +27,7 @@ const PatientBilling = () => {
   }, []);
 
   const totalDue = bills
-    .filter((b) => 'Pending'.equalsIgnoreCase(b.paymentStatus))
+    .filter((b) => (b.paymentStatus || '').toLowerCase() === 'pending')
     .reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
   return (

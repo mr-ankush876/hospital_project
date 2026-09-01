@@ -24,6 +24,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND (:search IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.role) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.status) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR CAST(u.id as string) LIKE CONCAT('%', :search, '%') " +
            "OR u.phone LIKE CONCAT('%', :search, '%')) " +
            "ORDER BY u.id DESC")
     List<User> searchUsers(
@@ -37,12 +40,26 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND (:search IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.role) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.status) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR CAST(u.id as string) LIKE CONCAT('%', :search, '%') " +
            "OR u.phone LIKE CONCAT('%', :search, '%'))")
     Page<User> searchUsersPaged(
             @Param("role") String role,
             @Param("status") String status,
             @Param("search") String search,
             Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE " +
+           ":query IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(u.role) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(u.status) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR CAST(u.id as string) LIKE CONCAT('%', :query, '%') " +
+           "OR u.phone LIKE CONCAT('%', :query, '%') " +
+           "ORDER BY u.id DESC")
+    List<User> searchByQuery(@Param("query") String query);
 
     long countByRole(String role);
     long countByStatus(String status);

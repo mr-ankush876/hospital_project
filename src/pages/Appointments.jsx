@@ -86,30 +86,28 @@ const Appointments = () => {
     }
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchAppointments();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search, statusFilter, doctorFilter, dateFilter]);
+
   const fetchAppointments = async () => {
     try {
-      const res = await appointmentApi.getAll();
+      const res = await appointmentApi.getAll({
+        search: search || undefined,
+        status: statusFilter || undefined,
+        doctorId: doctorFilter || undefined,
+        date: dateFilter || undefined,
+      });
       setAppointments(Array.isArray(res.data) ? res.data : res.data?.content || []);
     } catch (err) {
       console.error('Failed to refresh appointments:', err);
     }
   };
 
-  // Filter appointments
-  const filtered = appointments.filter((apt) => {
-    const pName = (apt.patient?.fullName || apt.patientName || '').toLowerCase();
-    const dName = (apt.doctor?.fullName || apt.doctorName || '').toLowerCase();
-    const code = (apt.appointmentCode || '').toLowerCase();
-    const reason = (apt.reason || '').toLowerCase();
-    const q = search.toLowerCase();
-
-    const matchesSearch = !search || pName.includes(q) || dName.includes(q) || code.includes(q) || reason.includes(q);
-    const matchesStatus = !statusFilter || apt.status === statusFilter;
-    const matchesDoctor = !doctorFilter || String(apt.doctor?.id || apt.doctorId) === String(doctorFilter);
-    const matchesDate = !dateFilter || apt.appointmentDate === dateFilter;
-
-    return matchesSearch && matchesStatus && matchesDoctor && matchesDate;
-  });
+  const filtered = appointments;
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedAppointments = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);

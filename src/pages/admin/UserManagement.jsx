@@ -64,11 +64,14 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, [roleFilter, statusFilter]);
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [roleFilter, statusFilter, search]);
 
   const handleSearchSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     fetchUsers();
   };
 

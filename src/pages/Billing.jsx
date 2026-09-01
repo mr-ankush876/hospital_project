@@ -87,9 +87,20 @@ const Billing = () => {
     }
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchBills();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search, statusFilter, dateFilter]);
+
   const fetchBills = async () => {
     try {
-      const res = await billApi.getAll();
+      const res = await billApi.getAll({
+        search: search || undefined,
+        status: statusFilter || undefined,
+        date: dateFilter || undefined,
+      });
       setBills(Array.isArray(res.data) ? res.data : res.data?.content || []);
     } catch (err) {
       console.error('Failed to refresh bills:', err);
@@ -105,18 +116,7 @@ const Billing = () => {
   const totalAmount = taxableAmount + (Number(formData.tax) || 0);
 
   // Filter
-  const filtered = bills.filter((b) => {
-    const pName = (b.patient?.fullName || b.patientName || '').toLowerCase();
-    const code = (b.billCode || '').toLowerCase();
-    const method = (b.paymentMethod || '').toLowerCase();
-    const q = search.toLowerCase();
-
-    const matchesSearch = !search || pName.includes(q) || code.includes(q) || method.includes(q);
-    const matchesStatus = !statusFilter || b.paymentStatus === statusFilter;
-    const matchesDate = !dateFilter || b.billDate === dateFilter;
-
-    return matchesSearch && matchesStatus && matchesDate;
-  });
+  const filtered = bills;
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedBills = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);

@@ -61,14 +61,21 @@ const Doctors = () => {
   const doctorStatuses = ['Available', 'In Surgery', 'On Leave', 'Unavailable'];
 
   useEffect(() => {
-    fetchDoctors();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchDoctors();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search, specFilter, statusFilter]);
 
   const fetchDoctors = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await doctorApi.getAll();
+      const res = await doctorApi.getAll({
+        search: search || undefined,
+        specialization: specFilter || undefined,
+        status: statusFilter || undefined,
+      });
       setDoctors(Array.isArray(res.data) ? res.data : res.data?.content || []);
     } catch (err) {
       console.error('Failed to fetch doctors:', err);
@@ -79,18 +86,7 @@ const Doctors = () => {
     }
   };
 
-  const filtered = doctors.filter((d) => {
-    const q = search.toLowerCase();
-    const nameMatch = (d.fullName || '').toLowerCase().includes(q);
-    const codeMatch = (d.doctorCode || '').toLowerCase().includes(q);
-    const specMatch = (d.specialization || '').toLowerCase().includes(q);
-
-    const matchesSearch = !search || nameMatch || codeMatch || specMatch;
-    const matchesSpec = !specFilter || d.specialization === specFilter;
-    const matchesStatus = !statusFilter || d.status === statusFilter;
-
-    return matchesSearch && matchesSpec && matchesStatus;
-  });
+  const filtered = doctors;
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedDoctors = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);

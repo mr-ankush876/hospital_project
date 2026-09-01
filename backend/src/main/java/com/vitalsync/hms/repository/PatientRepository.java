@@ -20,6 +20,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     @Query("SELECT p FROM Patient p WHERE " +
            "(:search IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(p.patientCode) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(p.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(p.gender) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(p.bloodGroup) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR p.phone LIKE CONCAT('%', :search, '%')) " +
            "AND (:status IS NULL OR p.status = :status) " +
            "AND (:gender IS NULL OR p.gender = :gender) " +
@@ -34,6 +37,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     @Query("SELECT p FROM Patient p WHERE " +
            "(:search IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(p.patientCode) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(p.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(p.gender) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(p.bloodGroup) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR p.phone LIKE CONCAT('%', :search, '%')) " +
            "AND (:status IS NULL OR p.status = :status) " +
            "AND (:gender IS NULL OR p.gender = :gender) " +
@@ -44,6 +50,16 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
             @Param("gender") String gender,
             @Param("bloodGroup") String bloodGroup,
             Pageable pageable);
+
+    @Query("SELECT p FROM Patient p WHERE " +
+           ":query IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(p.patientCode) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(p.email) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(p.gender) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(p.bloodGroup) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR p.phone LIKE CONCAT('%', :query, '%') " +
+           "ORDER BY p.id DESC")
+    List<Patient> searchByQuery(@Param("query") String query);
 
     @Query("SELECT COUNT(p) FROM Patient p WHERE p.status = 'Active'")
     long countActivePatients();

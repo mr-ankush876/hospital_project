@@ -83,25 +83,23 @@ const Prescriptions = () => {
     }
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchPrescriptions();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchPrescriptions = async () => {
     try {
-      const res = await prescriptionApi.getAll();
+      const res = await prescriptionApi.getAll({ search: search || undefined });
       setPrescriptions(Array.isArray(res.data) ? res.data : res.data?.content || []);
     } catch (err) {
       console.error('Failed to refresh prescriptions:', err);
     }
   };
 
-  // Filter
-  const filtered = prescriptions.filter((rx) => {
-    const pName = (rx.patient?.fullName || rx.patientName || '').toLowerCase();
-    const dName = (rx.doctor?.fullName || rx.doctorName || '').toLowerCase();
-    const code = (rx.prescriptionCode || '').toLowerCase();
-    const diag = (rx.diagnosis || '').toLowerCase();
-    const q = search.toLowerCase();
-
-    return !search || pName.includes(q) || dName.includes(q) || code.includes(q) || diag.includes(q);
-  });
+  const filtered = prescriptions;
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedPrescriptions = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
