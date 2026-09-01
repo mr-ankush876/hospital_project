@@ -1,13 +1,13 @@
-# Stage 1: Build the Spring Boot application using Maven
+# Stage 1: Build the Spring Boot application from the backend directory
 FROM maven:3.9.6-eclipse-temurin-17-alpine AS builder
 WORKDIR /build
 
 # Cache dependencies
-COPY pom.xml .
+COPY backend/pom.xml ./pom.xml
 RUN mvn dependency:go-offline -B || true
 
-# Copy source and package jar
-COPY src ./src
+# Copy source and build jar
+COPY backend/src ./src
 RUN mvn clean package -DskipTests -B
 
 # Stage 2: Ultra-lightweight JRE runtime
