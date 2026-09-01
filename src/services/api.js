@@ -1,13 +1,16 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// In development (Vite dev server), use '/api' which is proxied to localhost:8080.
+// In production (Vercel), use the full Render backend URL.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? 'https://vitalsync-hms-backend.onrender.com/api' : '/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  timeout: 30000,
 });
 
 // Interceptor to attach JWT token to all outgoing requests
