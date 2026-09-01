@@ -1,10 +1,7 @@
 package com.vitalsync.hms.service.impl;
 
 import com.vitalsync.hms.dto.DashboardStatsDto;
-import com.vitalsync.hms.repository.AppointmentRepository;
-import com.vitalsync.hms.repository.BillRepository;
-import com.vitalsync.hms.repository.DoctorRepository;
-import com.vitalsync.hms.repository.PatientRepository;
+import com.vitalsync.hms.repository.*;
 import com.vitalsync.hms.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -20,15 +17,29 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
     private final BillRepository billRepository;
+    private final BedRepository bedRepository;
 
     @Override
     public DashboardStatsDto getStats(Authentication authentication) {
         long totalPatients = patientRepository.countActivePatients();
         long totalDoctors = doctorRepository.countActiveDoctors();
+        long totalUsers = userRepository.count();
+        long totalReceptionists = userRepository.countByRole("RECEPTIONIST");
         long todayAppointments = appointmentRepository.countAppointmentsByDate(LocalDate.now());
         long pendingBills = billRepository.countPendingBills();
+        long activeUsers = userRepository.countByStatus("ACTIVE");
+
+        // Bed live metrics
+        long totalBeds = bedRepository.count();
+        long availableBeds = bedRepository.countByStatus("AVAILABLE");
+        long occupiedBeds = bedRepository.countByStatus("OCCUPIED");
+        long totalIcuBeds = bedRepository.countByBedType("ICU");
+        long availableIcuBeds = bedRepository.countByBedTypeAndStatus("ICU", "AVAILABLE");
+        long totalEmgBeds = bedRepository.countByBedType("EMERGENCY");
+        long availableEmgBeds = bedRepository.countByBedTypeAndStatus("EMERGENCY", "AVAILABLE");
 
         boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -39,9 +50,20 @@ public class DashboardServiceImpl implements DashboardService {
         return DashboardStatsDto.builder()
                 .totalPatients(totalPatients)
                 .totalDoctors(totalDoctors)
+                .totalUsers(totalUsers)
+                .totalReceptionists(totalReceptionists)
                 .todayAppointments(todayAppointments)
+                .pendingAppointments(appointmentRepository.count() - todayAppointments)
                 .pendingBills(pendingBills)
                 .totalRevenue(totalRevenue)
+                .totalBeds(totalBeds)
+                .availableBeds(availableBeds)
+                .occupiedBeds(occupiedBeds)
+                .totalIcuBeds(totalIcuBeds)
+                .availableIcuBeds(availableIcuBeds)
+                .totalEmergencyBeds(totalEmgBeds)
+                .availableEmergencyBeds(availableEmgBeds)
+                .activeUsers(activeUsers)
                 .build();
     }
 }

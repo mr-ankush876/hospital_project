@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 public class PatientDto {
     private Long id;
     private String patientCode;
+    private Long userId;
+    private String username;
 
     @NotBlank(message = "Full name is required")
     private String fullName;

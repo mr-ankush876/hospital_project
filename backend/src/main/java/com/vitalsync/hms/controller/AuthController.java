@@ -1,11 +1,10 @@
 package com.vitalsync.hms.controller;
 
-import com.vitalsync.hms.dto.AuthRequest;
-import com.vitalsync.hms.dto.AuthResponse;
-import com.vitalsync.hms.dto.UserDto;
+import com.vitalsync.hms.dto.*;
 import com.vitalsync.hms.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +21,24 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> registerPatient(@Valid @RequestBody RegisterPatientRequest request) {
+        AuthResponse response = authService.registerPatient(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        Map<String, String> response = authService.forgotPassword(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        Map<String, String> response = authService.resetPassword(request);
         return ResponseEntity.ok(response);
     }
 

@@ -2,6 +2,7 @@ package com.vitalsync.hms.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "patients")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Patient {
@@ -20,6 +22,10 @@ public class Patient {
 
     @Column(name = "patient_code", unique = true, nullable = false, length = 20)
     private String patientCode;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
@@ -55,6 +61,7 @@ public class Patient {
     private String allergies;
 
     @Column(length = 20)
+    @Builder.Default
     private String status = "Active";
 
     @Column(name = "created_at")
@@ -70,6 +77,9 @@ public class Patient {
         }
         if (updatedAt == null) {
             updatedAt = LocalDateTime.now();
+        }
+        if (status == null) {
+            status = "Active";
         }
     }
 

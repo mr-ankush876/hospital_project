@@ -14,6 +14,8 @@ import java.util.Optional;
 @Repository
 public interface PatientRepository extends JpaRepository<Patient, Long> {
     Optional<Patient> findByPatientCode(String patientCode);
+    Optional<Patient> findByEmail(String email);
+    Optional<Patient> findByUserId(Long userId);
 
     @Query("SELECT p FROM Patient p WHERE " +
            "(:search IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +

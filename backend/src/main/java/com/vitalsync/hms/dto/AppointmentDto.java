@@ -18,7 +18,6 @@ public class AppointmentDto {
     private Long id;
     private String appointmentCode;
 
-    @NotNull(message = "Patient ID is required")
     private Long patientId;
     private String patientName;
     private String patientCode;

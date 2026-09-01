@@ -23,128 +23,256 @@ public class DataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     private final UserRepository userRepository;
+    private final DepartmentRepository departmentRepository;
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
+    private final BedRepository bedRepository;
+    private final BedReservationRepository bedReservationRepository;
     private final AppointmentRepository appointmentRepository;
     private final PrescriptionRepository prescriptionRepository;
+    private final MedicalReportRepository medicalReportRepository;
     private final BillRepository billRepository;
     private final HospitalSettingRepository hospitalSettingRepository;
+    private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(String... args) {
-        if (userRepository.count() > 0) {
-            log.info("Database already contains data. Skipping seed initialization.");
-            return;
+        if (departmentRepository.count() == 0) {
+            seedDepartments();
         }
 
-        log.info("Empty database detected. Seeding initial data...");
-        seedUsers();
-        seedDoctors();
-        seedPatients();
-        seedAppointments();
-        seedPrescriptions();
-        seedBills();
-        seedHospitalSettings();
-        log.info("Database seeding completed successfully!");
+        if (userRepository.count() == 0) {
+            log.info("Empty database detected. Seeding initial users and data...");
+            seedUsers();
+            seedDoctors();
+            seedPatients();
+            seedBeds();
+            seedAppointments();
+            seedPrescriptions();
+            seedMedicalReports();
+            seedBills();
+            seedHospitalSettings();
+            seedAuditLogs();
+            log.info("Database seeding completed successfully!");
+        } else {
+            // If departments or beds are missing in existing DB, initialize them
+            if (bedRepository.count() == 0) {
+                seedBeds();
+            }
+            if (medicalReportRepository.count() == 0) {
+                seedMedicalReports();
+            }
+        }
+    }
+
+    private void seedDepartments() {
+        String[][] depts = {
+            {"DEP-001", "Cardiology", "Specialized comprehensive cardiovascular diagnostics and interventions.", "Dr. Robert Chen", "15"},
+            {"DEP-002", "Neurology", "Comprehensive neurological and neurosurgical clinical care.", "Dr. Marcus Vance", "10"},
+            {"DEP-003", "Pediatrics", "Pediatric medicine, neonatal care, and child healthcare.", "Dr. Emily Stanton", "12"},
+            {"DEP-004", "General Medicine", "Primary outpatient and inpatient internal medical care.", "Dr. Sarah Mitchell", "20"},
+            {"DEP-005", "Emergency & Trauma", "24/7 Level-1 Emergency and critical acute trauma center.", "Dr. Sarah Mitchell", "15"},
+            {"DEP-006", "Intensive Care Unit (ICU)", "State-of-the-art intensive monitoring and life support systems.", "Dr. Robert Chen", "10"},
+            {"DEP-007", "Orthopedics", "Musculoskeletal surgical care, joint replacement, and rehabilitation.", "Dr. Marcus Vance", "10"},
+            {"DEP-008", "General Surgery", "Advanced laparoscopic and major open surgical interventions.", "Dr. Sarah Mitchell", "12"},
+            {"DEP-009", "Radiology & Imaging", "High-field MRI, 128-slice CT, digital X-Ray, and ultrasonography.", "Dr. Emily Stanton", "5"},
+            {"DEP-010", "Pathology & Diagnostics", "Automated clinical biochemistry, hematology, and histopathology.", "Dr. Robert Chen", "0"},
+            {"DEP-011", "Pharmacy", "Hospital formulary dispensing and inpatient medication distribution.", "Dr. Sarah Mitchell", "0"},
+            {"DEP-012", "Oncology", "Medical oncology, chemotherapy infusion, and palliative support.", "Dr. Marcus Vance", "8"}
+        };
+
+        for (String[] d : depts) {
+            Department dept = Department.builder()
+                    .departmentCode(d[0])
+                    .name(d[1])
+                    .description(d[2])
+                    .headDoctorName(d[3])
+                    .totalBeds(Integer.parseInt(d[4]))
+                    .availableBeds(Integer.parseInt(d[4]))
+                    .occupiedBeds(0)
+                    .status("Active")
+                    .build();
+            departmentRepository.save(dept);
+        }
+        log.info("Seeded 12 hospital departments");
     }
 
     private void seedUsers() {
         String encodedPassword = passwordEncoder.encode("password123");
 
-        User admin = new User();
-        admin.setUsername("admin");
-        admin.setPassword(encodedPassword);
-        admin.setEmail("admin@vitalsync.com");
-        admin.setFullName("Dr. Sarah Mitchell");
-        admin.setRole("ADMIN");
+        User admin = User.builder()
+                .username("admin")
+                .password(encodedPassword)
+                .email("admin@vitalsync.com")
+                .fullName("Dr. Sarah Mitchell (Administrator)")
+                .phone("+1 (555) 321-7654")
+                .role("ADMIN")
+                .status("ACTIVE")
+                .build();
         userRepository.save(admin);
 
-        User drChen = new User();
-        drChen.setUsername("dr.chen");
-        drChen.setPassword(encodedPassword);
-        drChen.setEmail("r.chen@vitalsync.com");
-        drChen.setFullName("Dr. Robert Chen");
-        drChen.setRole("DOCTOR");
+        User drChen = User.builder()
+                .username("dr.chen")
+                .password(encodedPassword)
+                .email("r.chen@vitalsync.com")
+                .fullName("Dr. Robert Chen")
+                .phone("+1 (555) 123-4567")
+                .role("DOCTOR")
+                .status("ACTIVE")
+                .build();
         userRepository.save(drChen);
 
-        User drStanton = new User();
-        drStanton.setUsername("dr.stanton");
-        drStanton.setPassword(encodedPassword);
-        drStanton.setEmail("e.stanton@vitalsync.com");
-        drStanton.setFullName("Dr. Emily Stanton");
-        drStanton.setRole("DOCTOR");
+        User drStanton = User.builder()
+                .username("dr.stanton")
+                .password(encodedPassword)
+                .email("e.stanton@vitalsync.com")
+                .fullName("Dr. Emily Stanton")
+                .phone("+1 (555) 987-6543")
+                .role("DOCTOR")
+                .status("ACTIVE")
+                .build();
         userRepository.save(drStanton);
 
-        User receptionist = new User();
-        receptionist.setUsername("receptionist");
-        receptionist.setPassword(encodedPassword);
-        receptionist.setEmail("reception@vitalsync.com");
-        receptionist.setFullName("Alex Vance");
-        receptionist.setRole("RECEPTIONIST");
+        User drVance = User.builder()
+                .username("dr.vance")
+                .password(encodedPassword)
+                .email("m.vance@vitalsync.com")
+                .fullName("Dr. Marcus Vance")
+                .phone("+1 (555) 456-7890")
+                .role("DOCTOR")
+                .status("ACTIVE")
+                .build();
+        userRepository.save(drVance);
+
+        User receptionist = User.builder()
+                .username("receptionist")
+                .password(encodedPassword)
+                .email("reception@vitalsync.com")
+                .fullName("Alex Vance")
+                .phone("+1 (555) 111-2233")
+                .role("RECEPTIONIST")
+                .status("ACTIVE")
+                .build();
         userRepository.save(receptionist);
 
-        log.info("Seeded 4 users (admin, dr.chen, dr.stanton, receptionist) with password: password123");
+        // Seed patient accounts
+        User pUser1 = User.builder()
+                .username("patient.michael")
+                .password(encodedPassword)
+                .email("michael.chang@email.com")
+                .fullName("Michael Chang")
+                .phone("+1 (555) 123-4567")
+                .role("PATIENT")
+                .status("ACTIVE")
+                .build();
+        userRepository.save(pUser1);
+
+        User pUser2 = User.builder()
+                .username("patient.sarah")
+                .password(encodedPassword)
+                .email("sarah.j@email.com")
+                .fullName("Sarah Jenkins")
+                .phone("+1 (555) 987-6543")
+                .role("PATIENT")
+                .status("ACTIVE")
+                .build();
+        userRepository.save(pUser2);
+
+        log.info("Seeded central user accounts with BCrypt passwords");
     }
 
     private void seedDoctors() {
-        Doctor d1 = new Doctor();
-        d1.setDoctorCode("DOC-2001");
-        d1.setFullName("Dr. Robert Chen");
-        d1.setEmail("r.chen@vitalsync.com");
-        d1.setPhone("+1 (555) 123-4567");
-        d1.setSpecialization("Cardiology");
-        d1.setQualification("MD, FACC");
-        d1.setExperience("15 Years");
-        d1.setAvailableDays("Mon, Wed, Fri");
-        d1.setAvailableTime("09:00 AM - 05:00 PM");
-        d1.setStatus("Available");
+        Department cardio = departmentRepository.findByName("Cardiology").orElse(null);
+        Department peds = departmentRepository.findByName("Pediatrics").orElse(null);
+        Department neuro = departmentRepository.findByName("Neurology").orElse(null);
+        Department genMed = departmentRepository.findByName("General Medicine").orElse(null);
+
+        User drChenUser = userRepository.findByUsername("dr.chen").orElse(null);
+        User drStantonUser = userRepository.findByUsername("dr.stanton").orElse(null);
+        User drVanceUser = userRepository.findByUsername("dr.vance").orElse(null);
+        User adminUser = userRepository.findByUsername("admin").orElse(null);
+
+        Doctor d1 = Doctor.builder()
+                .doctorCode("DOC-2001")
+                .user(drChenUser)
+                .department(cardio)
+                .fullName("Dr. Robert Chen")
+                .email("r.chen@vitalsync.com")
+                .phone("+1 (555) 123-4567")
+                .specialization("Cardiology")
+                .qualification("MD, FACC, Board Certified Cardiologist")
+                .experience("15 Years")
+                .availableDays("Mon, Wed, Fri")
+                .availableTime("09:00 AM - 05:00 PM")
+                .consultationFee(new BigDecimal("150.00"))
+                .status("Available")
+                .imageUrl("https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&h=300&fit=crop&crop=face")
+                .build();
         doctorRepository.save(d1);
 
-        Doctor d2 = new Doctor();
-        d2.setDoctorCode("DOC-2002");
-        d2.setFullName("Dr. Emily Stanton");
-        d2.setEmail("e.stanton@vitalsync.com");
-        d2.setPhone("+1 (555) 987-6543");
-        d2.setSpecialization("Pediatrics");
-        d2.setQualification("MD, FAAP");
-        d2.setExperience("10 Years");
-        d2.setAvailableDays("Tue, Thu, Sat");
-        d2.setAvailableTime("08:00 AM - 04:00 PM");
-        d2.setStatus("Available");
+        Doctor d2 = Doctor.builder()
+                .doctorCode("DOC-2002")
+                .user(drStantonUser)
+                .department(peds)
+                .fullName("Dr. Emily Stanton")
+                .email("e.stanton@vitalsync.com")
+                .phone("+1 (555) 987-6543")
+                .specialization("Pediatrics")
+                .qualification("MD, FAAP, Pediatric Critical Care Specialist")
+                .experience("10 Years")
+                .availableDays("Tue, Thu, Sat")
+                .availableTime("08:00 AM - 04:00 PM")
+                .consultationFee(new BigDecimal("120.00"))
+                .status("Available")
+                .imageUrl("https://images.unsplash.com/photo-1594824813589-3221b66b4033?w=300&h=300&fit=crop&crop=face")
+                .build();
         doctorRepository.save(d2);
 
-        Doctor d3 = new Doctor();
-        d3.setDoctorCode("DOC-2003");
-        d3.setFullName("Dr. Marcus Vance");
-        d3.setEmail("m.vance@vitalsync.com");
-        d3.setPhone("+1 (555) 456-7890");
-        d3.setSpecialization("Neurology");
-        d3.setQualification("MD, PhD");
-        d3.setExperience("18 Years");
-        d3.setAvailableDays("Mon - Fri");
-        d3.setAvailableTime("10:00 AM - 06:00 PM");
-        d3.setStatus("In Surgery");
+        Doctor d3 = Doctor.builder()
+                .doctorCode("DOC-2003")
+                .user(drVanceUser)
+                .department(neuro)
+                .fullName("Dr. Marcus Vance")
+                .email("m.vance@vitalsync.com")
+                .phone("+1 (555) 456-7890")
+                .specialization("Neurology")
+                .qualification("MD, PhD, Neuro-Oncology Fellow")
+                .experience("18 Years")
+                .availableDays("Mon - Fri")
+                .availableTime("10:00 AM - 06:00 PM")
+                .consultationFee(new BigDecimal("200.00"))
+                .status("In Surgery")
+                .imageUrl("https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&h=300&fit=crop&crop=face")
+                .build();
         doctorRepository.save(d3);
 
-        Doctor d4 = new Doctor();
-        d4.setDoctorCode("DOC-2004");
-        d4.setFullName("Dr. Sarah Mitchell");
-        d4.setEmail("s.mitchell@vitalsync.com");
-        d4.setPhone("+1 (555) 321-7654");
-        d4.setSpecialization("General Practice");
-        d4.setQualification("MBBS, MD");
-        d4.setExperience("12 Years");
-        d4.setAvailableDays("Mon - Sat");
-        d4.setAvailableTime("09:00 AM - 05:00 PM");
-        d4.setStatus("Available");
+        Doctor d4 = Doctor.builder()
+                .doctorCode("DOC-2004")
+                .user(adminUser)
+                .department(genMed)
+                .fullName("Dr. Sarah Mitchell")
+                .email("s.mitchell@vitalsync.com")
+                .phone("+1 (555) 321-7654")
+                .specialization("General Practice & Internal Medicine")
+                .qualification("MBBS, MD, Chief Medical Officer")
+                .experience("12 Years")
+                .availableDays("Mon - Sat")
+                .availableTime("09:00 AM - 05:00 PM")
+                .consultationFee(new BigDecimal("100.00"))
+                .status("Available")
+                .imageUrl("https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop&crop=face")
+                .build();
         doctorRepository.save(d4);
 
-        log.info("Seeded 4 doctors");
+        log.info("Seeded 4 doctors with linked user and department relationships");
     }
 
     private void seedPatients() {
+        User pUser1 = userRepository.findByUsername("patient.michael").orElse(null);
+        User pUser2 = userRepository.findByUsername("patient.sarah").orElse(null);
+
         String[][] patientData = {
             {"PT-1001", "Michael Chang", "1979-05-14", "45", "Male", "O+", "+1 (555) 123-4567", "michael.chang@email.com", "742 Evergreen Terrace, Springfield", "+1 (555) 999-1111", "Hypertension diagnosed in 2021.", "Penicillin, Latex (Mild)", "Active"},
             {"PT-1002", "Sarah Jenkins", "1996-08-22", "28", "Female", "A-", "+1 (555) 987-6543", "sarah.j@email.com", "123 Maple Street, Cityville", "+1 (555) 888-2222", "Mild asthma, managed with Inhaler.", "Sulfa Drugs", "Active"},
@@ -157,23 +285,112 @@ public class DataInitializer implements CommandLineRunner {
         };
 
         for (String[] pd : patientData) {
-            Patient p = new Patient();
-            p.setPatientCode(pd[0]);
-            p.setFullName(pd[1]);
-            p.setDob(LocalDate.parse(pd[2]));
-            p.setAge(Integer.parseInt(pd[3]));
-            p.setGender(pd[4]);
-            p.setBloodGroup(pd[5]);
-            p.setPhone(pd[6]);
-            p.setEmail(pd[7]);
-            p.setAddress(pd[8]);
-            p.setEmergencyContact(pd[9]);
-            p.setMedicalHistory(pd[10]);
-            p.setAllergies(pd[11]);
-            p.setStatus(pd[12]);
+            User linkedUser = null;
+            if ("PT-1001".equals(pd[0])) linkedUser = pUser1;
+            if ("PT-1002".equals(pd[0])) linkedUser = pUser2;
+
+            Patient p = Patient.builder()
+                    .patientCode(pd[0])
+                    .user(linkedUser)
+                    .fullName(pd[1])
+                    .dob(LocalDate.parse(pd[2]))
+                    .age(Integer.parseInt(pd[3]))
+                    .gender(pd[4])
+                    .bloodGroup(pd[5])
+                    .phone(pd[6])
+                    .email(pd[7])
+                    .address(pd[8])
+                    .emergencyContact(pd[9])
+                    .medicalHistory(pd[10])
+                    .allergies(pd[11])
+                    .status(pd[12])
+                    .build();
             patientRepository.save(p);
         }
         log.info("Seeded 8 patients");
+    }
+
+    private void seedBeds() {
+        Department icu = departmentRepository.findByName("Intensive Care Unit (ICU)").orElse(null);
+        Department emg = departmentRepository.findByName("Emergency & Trauma").orElse(null);
+        Department cardio = departmentRepository.findByName("Cardiology").orElse(null);
+        Department genMed = departmentRepository.findByName("General Medicine").orElse(null);
+
+        Patient p1 = patientRepository.findByPatientCode("PT-1001").orElse(null);
+        Patient p3 = patientRepository.findByPatientCode("PT-1003").orElse(null);
+
+        if (icu != null) {
+            for (int i = 1; i <= 10; i++) {
+                String bedNum = String.format("ICU-%03d", i);
+                String status = (i <= 3) ? "OCCUPIED" : (i == 4 ? "RESERVED" : "AVAILABLE");
+                Patient current = (i == 1) ? p1 : (i == 2 ? p3 : null);
+
+                Bed bed = Bed.builder()
+                        .bedNumber(bedNum)
+                        .department(icu)
+                        .bedType("ICU")
+                        .dailyCharge(new BigDecimal("500.00"))
+                        .status(status)
+                        .currentPatient(current)
+                        .admissionDate(current != null ? LocalDateTime.now().minusDays(2) : null)
+                        .notes("Advanced mechanical ventilator and dynamic hemodynamic monitor")
+                        .build();
+                bedRepository.save(bed);
+            }
+        }
+
+        if (emg != null) {
+            for (int i = 1; i <= 8; i++) {
+                String bedNum = String.format("EMG-%02d", i);
+                String status = (i <= 2) ? "OCCUPIED" : "AVAILABLE";
+
+                Bed bed = Bed.builder()
+                        .bedNumber(bedNum)
+                        .department(emg)
+                        .bedType("EMERGENCY")
+                        .dailyCharge(new BigDecimal("300.00"))
+                        .status(status)
+                        .notes("Level 1 Acute Trauma resuscitation bay")
+                        .build();
+                bedRepository.save(bed);
+            }
+        }
+
+        if (genMed != null) {
+            for (int i = 1; i <= 15; i++) {
+                String bedNum = String.format("GW-%03d", 200 + i);
+                String status = (i <= 4) ? "OCCUPIED" : "AVAILABLE";
+
+                Bed bed = Bed.builder()
+                        .bedNumber(bedNum)
+                        .department(genMed)
+                        .bedType("GENERAL")
+                        .dailyCharge(new BigDecimal("100.00"))
+                        .status(status)
+                        .notes("General Medical Inpatient ward unit")
+                        .build();
+                bedRepository.save(bed);
+            }
+        }
+
+        if (cardio != null) {
+            for (int i = 1; i <= 5; i++) {
+                String bedNum = String.format("PVT-%03d", 300 + i);
+                String status = (i == 1) ? "OCCUPIED" : "AVAILABLE";
+
+                Bed bed = Bed.builder()
+                        .bedNumber(bedNum)
+                        .department(cardio)
+                        .bedType("PRIVATE")
+                        .dailyCharge(new BigDecimal("250.00"))
+                        .status(status)
+                        .notes("Private single-room deluxe recovery suite")
+                        .build();
+                bedRepository.save(bed);
+            }
+        }
+
+        log.info("Seeded hospital beds (ICU, Emergency, General Ward, Private suites)");
     }
 
     private void seedAppointments() {
@@ -249,7 +466,7 @@ public class DataInitializer implements CommandLineRunner {
             appointmentRepository.save(a5);
         }
 
-        log.info("Seeded 5 appointments");
+        log.info("Seeded appointments");
     }
 
     private void seedPrescriptions() {
@@ -299,7 +516,65 @@ public class DataInitializer implements CommandLineRunner {
             prescriptionRepository.save(rx2);
         }
 
-        log.info("Seeded 2 prescriptions");
+        log.info("Seeded prescriptions");
+    }
+
+    private void seedMedicalReports() {
+        Patient p1 = patientRepository.findByPatientCode("PT-1001").orElse(null);
+        Patient p2 = patientRepository.findByPatientCode("PT-1002").orElse(null);
+        Doctor d1 = doctorRepository.findByDoctorCode("DOC-2001").orElse(null);
+        Doctor d2 = doctorRepository.findByDoctorCode("DOC-2002").orElse(null);
+
+        if (p1 != null && d1 != null) {
+            MedicalReport rep1 = MedicalReport.builder()
+                    .reportCode("REP-7001")
+                    .patient(p1)
+                    .doctor(d1)
+                    .departmentName("Cardiology")
+                    .reportType("12-Lead Electrocardiogram (ECG)")
+                    .reportDate(LocalDate.now().minusDays(3))
+                    .symptoms("Exertional palpitation and mild chest heaviness.")
+                    .diagnosis("Sinus rhythm with borderline LVH criteria.")
+                    .testResults("PR Interval: 160ms, QRS Duration: 92ms, QTc: 418ms. No acute ST-elevation or T-wave inversion.")
+                    .doctorNotes("Continue Lisinopril 10mg. Schedule 2D-Echocardiogram if symptoms persist.")
+                    .status("Final")
+                    .build();
+            medicalReportRepository.save(rep1);
+
+            MedicalReport rep2 = MedicalReport.builder()
+                    .reportCode("REP-7002")
+                    .patient(p1)
+                    .doctor(d1)
+                    .departmentName("Pathology & Diagnostics")
+                    .reportType("Comprehensive Lipid Profile")
+                    .reportDate(LocalDate.now().minusDays(10))
+                    .symptoms("Routine cardiovascular risk profiling.")
+                    .diagnosis("Mild Dyslipidemia")
+                    .testResults("Total Cholesterol: 215 mg/dL (Borderline High), Triglycerides: 165 mg/dL, HDL: 44 mg/dL, LDL: 138 mg/dL.")
+                    .doctorNotes("Lifestyle modification recommended: low saturated fat diet, 30 min daily walking.")
+                    .status("Final")
+                    .build();
+            medicalReportRepository.save(rep2);
+        }
+
+        if (p2 != null && d2 != null) {
+            MedicalReport rep3 = MedicalReport.builder()
+                    .reportCode("REP-7003")
+                    .patient(p2)
+                    .doctor(d2)
+                    .departmentName("Pathology & Diagnostics")
+                    .reportType("Complete Blood Count (CBC)")
+                    .reportDate(LocalDate.now().minusDays(2))
+                    .symptoms("Fatigue and low-grade pyrexia.")
+                    .diagnosis("Mild reactive leukocytosis consistent with viral URI.")
+                    .testResults("WBC: 11.2 x 10^3/uL, Hemoglobin: 13.4 g/dL, Platelets: 280 x 10^3/uL, CRP: 4.2 mg/L.")
+                    .doctorNotes("Supportive hydration and antipyretics. Review in 5 days if fever persists.")
+                    .status("Final")
+                    .build();
+            medicalReportRepository.save(rep3);
+        }
+
+        log.info("Seeded medical reports");
     }
 
     private void seedBills() {
@@ -373,5 +648,33 @@ public class DataInitializer implements CommandLineRunner {
         settings.setInvoiceFooter("Thank you for trusting VitalSync Healthcare. Get well soon!");
         hospitalSettingRepository.save(settings);
         log.info("Seeded hospital settings");
+    }
+
+    private void seedAuditLogs() {
+        AuditLog l1 = AuditLog.builder()
+                .username("system")
+                .role("SYSTEM")
+                .action("SYSTEM_INITIALIZATION")
+                .entityName("System")
+                .entityId("0")
+                .details("VitalSync Clinical Precision HMS initialized and synchronized.")
+                .ipAddress("127.0.0.1")
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditLogRepository.save(l1);
+
+        AuditLog l2 = AuditLog.builder()
+                .username("admin")
+                .role("ADMIN")
+                .action("SYSTEM_VERIFICATION")
+                .entityName("HospitalSetting")
+                .entityId("1")
+                .details("Hospital configuration verified and active.")
+                .ipAddress("127.0.0.1")
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditLogRepository.save(l2);
+
+        log.info("Seeded audit logs");
     }
 }

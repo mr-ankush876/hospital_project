@@ -30,14 +30,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid — check if not on login page
-      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      const isLoginRequest = error.config?.url?.includes('/auth/login') ||
+                             error.config?.url?.includes('/auth/register') ||
+                             error.config?.url?.includes('/auth/forgot-password');
       if (!isLoginRequest) {
-        // Clear stale auth state
         localStorage.removeItem('vitalsync_token');
         localStorage.removeItem('vitalsync_user');
-        // Redirect to login
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+        if (window.location.pathname.startsWith('/patient') ||
+            window.location.pathname.startsWith('/doctor') ||
+            window.location.pathname.startsWith('/admin') ||
+            window.location.pathname.startsWith('/dashboard')) {
           window.location.href = '/login';
         }
       }
@@ -49,16 +51,97 @@ api.interceptors.response.use(
 // 1. Auth Endpoints
 export const authApi = {
   login: (credentials) => api.post('/auth/login', credentials),
+  register: (patientData) => api.post('/auth/register', patientData),
+  forgotPassword: (data) => api.post('/auth/forgot-password', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
   logout: () => api.post('/auth/logout'),
   getCurrentUser: () => api.get('/auth/me'),
 };
 
-// 2. Dashboard Endpoints
+// 2. Public Endpoints (Unauthenticated)
+export const publicApi = {
+  getHospitalInfo: () => api.get('/public/hospital-info'),
+  getDoctors: () => api.get('/public/doctors'),
+  getDoctorById: (id) => api.get(`/public/doctors/${id}`),
+  getDepartments: () => api.get('/public/departments'),
+  getBedAvailability: () => api.get('/public/beds/availability'),
+};
+
+// 3. Patient Self-Service Portal Endpoints (JWT isolated)
+export const patientPortalApi = {
+  getDashboard: () => api.get('/patient/dashboard'),
+  getProfile: () => api.get('/patient/profile'),
+  updateProfile: (data) => api.put('/patient/profile', data),
+  getAppointments: (params) => api.get('/patient/appointments', { params }),
+  bookAppointment: (data) => api.post('/patient/appointments', data),
+  cancelAppointment: (id) => api.patch(`/patient/appointments/${id}/cancel`),
+  getPrescriptions: () => api.get('/patient/prescriptions'),
+  getPrescriptionById: (id) => api.get(`/patient/prescriptions/${id}`),
+  getReports: () => api.get('/patient/reports'),
+  getReportById: (id) => api.get(`/patient/reports/${id}`),
+  getBills: () => api.get('/patient/bills'),
+  getBillById: (id) => api.get(`/patient/bills/${id}`),
+  getBedReservations: () => api.get('/patient/bed-reservations'),
+  bookBedReservation: (data) => api.post('/patient/bed-reservations', data),
+};
+
+// 4. Doctor Portal Endpoints (JWT isolated)
+export const doctorPortalApi = {
+  getDashboard: () => api.get('/doctor/dashboard'),
+  getAppointments: (params) => api.get('/doctor/appointments', { params }),
+  getPatients: () => api.get('/doctor/patients'),
+  getProfile: () => api.get('/doctor/profile'),
+  updateProfile: (data) => api.put('/doctor/profile', data),
+};
+
+// 5. Dashboard Endpoints (Admin & Staff)
 export const dashboardApi = {
   getStats: () => api.get('/dashboard/stats'),
 };
 
-// 3. Patient Endpoints
+// 6. Departments Management
+export const departmentApi = {
+  getAll: (params) => api.get('/departments', { params }),
+  getById: (id) => api.get(`/departments/${id}`),
+  create: (data) => api.post('/departments', data),
+  update: (id, data) => api.put(`/departments/${id}`, data),
+  delete: (id) => api.delete(`/departments/${id}`),
+};
+
+// 7. Bed & ICU Management
+export const bedApi = {
+  getAllBeds: (params) => api.get('/beds', { params }),
+  getBedById: (id) => api.get(`/beds/${id}`),
+  createBed: (data) => api.post('/beds', data),
+  updateBed: (id, data) => api.put(`/beds/${id}`, data),
+  updateBedStatus: (id, status, patientId) => api.patch(`/beds/${id}/status`, { status, patientId }),
+  deleteBed: (id) => api.delete(`/beds/${id}`),
+  // Reservations
+  getAllReservations: (params) => api.get('/beds/reservations', { params }),
+  createReservation: (data) => api.post('/beds/reservations', data),
+  updateReservationStatus: (id, status, notes) => api.patch(`/beds/reservations/${id}/status`, { status, notes }),
+};
+
+// 8. Medical Reports (Staff)
+export const medicalReportApi = {
+  getAll: (params) => api.get('/medical-reports', { params }),
+  getById: (id) => api.get(`/medical-reports/${id}`),
+  create: (data) => api.post('/medical-reports', data),
+  update: (id, data) => api.put(`/medical-reports/${id}`, data),
+  delete: (id) => api.delete(`/medical-reports/${id}`),
+};
+
+// 9. Admin User Management & Audit Logs
+export const userManagementApi = {
+  getAllUsers: (params) => api.get('/admin/users', { params }),
+  getUserById: (id) => api.get(`/admin/users/${id}`),
+  createStaffAccount: (data) => api.post('/admin/users', data),
+  updateUserStatus: (id, status) => api.patch(`/admin/users/${id}/status`, { status }),
+  resetUserPassword: (id, newPassword) => api.post(`/admin/users/${id}/reset-password`, { newPassword }),
+  getAuditLogs: (params) => api.get('/admin/audit-logs', { params }),
+};
+
+// 10. Patient Endpoints (Staff CRUD)
 export const patientApi = {
   getAll: (params) => api.get('/patients', { params }),
   getById: (id) => api.get(`/patients/${id}`),
@@ -67,7 +150,7 @@ export const patientApi = {
   delete: (id) => api.delete(`/patients/${id}`),
 };
 
-// 4. Doctor Endpoints
+// 11. Doctor Endpoints (Staff CRUD)
 export const doctorApi = {
   getAll: (params) => api.get('/doctors', { params }),
   getById: (id) => api.get(`/doctors/${id}`),
@@ -76,7 +159,7 @@ export const doctorApi = {
   delete: (id) => api.delete(`/doctors/${id}`),
 };
 
-// 5. Appointment Endpoints
+// 12. Appointment Endpoints (Staff CRUD)
 export const appointmentApi = {
   getAll: (params) => api.get('/appointments', { params }),
   getById: (id) => api.get(`/appointments/${id}`),
@@ -86,7 +169,7 @@ export const appointmentApi = {
   delete: (id) => api.delete(`/appointments/${id}`),
 };
 
-// 6. Prescription Endpoints
+// 13. Prescription Endpoints (Staff CRUD)
 export const prescriptionApi = {
   getAll: (params) => api.get('/prescriptions', { params }),
   getById: (id) => api.get(`/prescriptions/${id}`),
@@ -95,7 +178,7 @@ export const prescriptionApi = {
   delete: (id) => api.delete(`/prescriptions/${id}`),
 };
 
-// 7. Billing Endpoints
+// 14. Billing Endpoints (Staff CRUD)
 export const billApi = {
   getAll: (params) => api.get('/bills', { params }),
   getById: (id) => api.get(`/bills/${id}`),
@@ -106,14 +189,13 @@ export const billApi = {
   delete: (id) => api.delete(`/bills/${id}`),
 };
 
-// 8. Reports Endpoints
+// 15. Reports Endpoints (Admin Analytics)
 export const reportApi = {
   getSummary: (params) => api.get('/reports/summary', { params }),
-  exportCsv: (params) =>
-    api.get('/reports/export', { params, responseType: 'blob' }),
+  exportCsv: (params) => api.get('/reports/export', { params, responseType: 'blob' }),
 };
 
-// 9. Settings Endpoints
+// 16. Settings Endpoints
 export const settingApi = {
   getHospitalProfile: () => api.get('/settings/hospital'),
   updateHospitalProfile: (data) => api.put('/settings/hospital', data),

@@ -1,11 +1,11 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import VitalSyncLogo from '../common/VitalSyncLogo';
 import StatusBadge from '../common/StatusBadge';
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -13,18 +13,62 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     navigate('/login');
   };
 
-  const navItems = [
-    { label: 'Dashboard', icon: 'dashboard', path: '/dashboard', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
-    { label: 'Patients', icon: 'group', path: '/patients', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
-    { label: 'Doctors', icon: 'medical_services', path: '/doctors', roles: ['ADMIN'] },
-    { label: 'Appointments', icon: 'event_available', path: '/appointments', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
-    { label: 'Prescriptions', icon: 'prescriptions', path: '/prescriptions', roles: ['ADMIN', 'DOCTOR'] },
-    { label: 'Billing', icon: 'payments', path: '/billing', roles: ['ADMIN', 'RECEPTIONIST'] },
-    { label: 'Reports', icon: 'assessment', path: '/reports', roles: ['ADMIN'] },
-    { label: 'Settings', icon: 'settings', path: '/settings', roles: ['ADMIN'] },
-  ];
+  const getNavItems = () => {
+    if (!user) return [];
 
-  const visibleItems = navItems.filter((item) => hasRole(item.roles));
+    if (user.role === 'PATIENT') {
+      return [
+        { label: 'Patient Dashboard', icon: 'dashboard', path: '/patient/dashboard' },
+        { label: 'Book Appointment', icon: 'add_circle', path: '/patient/book-appointment' },
+        { label: 'My Appointments', icon: 'event_available', path: '/patient/appointments' },
+        { label: 'My Prescriptions', icon: 'prescriptions', path: '/patient/prescriptions' },
+        { label: 'Medical Reports', icon: 'description', path: '/patient/reports' },
+        { label: 'Bed & ICU Request', icon: 'hotel', path: '/patient/beds' },
+        { label: 'My Invoices & Bills', icon: 'receipt_long', path: '/patient/bills' },
+        { label: 'Personal Profile', icon: 'account_circle', path: '/patient/profile' },
+      ];
+    }
+
+    if (user.role === 'DOCTOR') {
+      return [
+        { label: 'Doctor Dashboard', icon: 'dashboard', path: '/doctor/dashboard' },
+        { label: 'My Consultations', icon: 'event_available', path: '/doctor/appointments' },
+        { label: 'Clinical Patients', icon: 'group', path: '/doctor/patients' },
+        { label: 'Prescriptions', icon: 'prescriptions', path: '/prescriptions' },
+        { label: 'Medical Reports', icon: 'description', path: '/medical-reports' },
+        { label: 'Doctor Profile', icon: 'account_circle', path: '/doctor/profile' },
+      ];
+    }
+
+    if (user.role === 'RECEPTIONIST') {
+      return [
+        { label: 'Reception Dashboard', icon: 'dashboard', path: '/dashboard' },
+        { label: 'Patients Desk', icon: 'group', path: '/patients' },
+        { label: 'Appointments', icon: 'event_available', path: '/appointments' },
+        { label: 'Beds & ICU Allocation', icon: 'hotel', path: '/admin/beds' },
+        { label: 'Billing Desk', icon: 'payments', path: '/billing' },
+      ];
+    }
+
+    // Default: ADMIN
+    return [
+      { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
+      { label: 'User & Accounts', icon: 'manage_accounts', path: '/admin/users' },
+      { label: 'Patients', icon: 'group', path: '/patients' },
+      { label: 'Doctors', icon: 'medical_services', path: '/doctors' },
+      { label: 'Appointments', icon: 'event_available', path: '/appointments' },
+      { label: 'Departments', icon: 'domain', path: '/admin/departments' },
+      { label: 'Beds & ICU', icon: 'hotel', path: '/admin/beds' },
+      { label: 'Prescriptions', icon: 'prescriptions', path: '/prescriptions' },
+      { label: 'Billing', icon: 'payments', path: '/billing' },
+      { label: 'Medical Reports', icon: 'description', path: '/medical-reports' },
+      { label: 'Analytics Reports', icon: 'assessment', path: '/reports' },
+      { label: 'Audit Logs', icon: 'history', path: '/admin/audit-logs' },
+      { label: 'Hospital Settings', icon: 'settings', path: '/settings' },
+    ];
+  };
+
+  const visibleItems = getNavItems();
 
   return (
     <>
@@ -44,8 +88,10 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
         }`}
       >
         {/* Brand Header */}
-        <div className="px-6 mb-6 flex items-center justify-between">
-          <VitalSyncLogo showText={true} className="w-9 h-9" />
+        <div className="px-6 mb-5 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <VitalSyncLogo showText={true} className="w-9 h-9" />
+          </Link>
           <button
             onClick={() => setMobileOpen(false)}
             className="md:hidden text-outline hover:text-white p-1 rounded-lg transition-colors"
@@ -57,14 +103,14 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
         {/* User Card */}
         {user && (
-          <div className="px-4 mb-5">
+          <div className="px-4 mb-4">
             <div className="bg-surface-container-highest/10 border border-outline/20 rounded-xl p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container font-bold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-primary text-on-primary font-bold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
                 {user.fullName ? user.fullName.substring(0, 2).toUpperCase() : 'VS'}
               </div>
               <div className="overflow-hidden min-w-0 flex-1">
                 <p className="font-semibold text-xs text-white truncate">{user.fullName || user.username}</p>
-                <div className="mt-0.5">
+                <div className="mt-0.5 flex items-center gap-1.5">
                   <StatusBadge status={user.role} size="xs" />
                 </div>
               </div>
@@ -73,33 +119,40 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
         )}
 
         {/* Navigation Links */}
-        <nav className="flex-1 overflow-y-auto px-3 space-y-1.5 scrollbar-thin">
+        <nav className="flex-1 overflow-y-auto px-3 space-y-1 scrollbar-thin">
           {visibleItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
+                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
                   isActive
                     ? 'bg-primary text-white shadow-sm border-l-4 border-primary-fixed-dim'
                     : 'text-outline-variant hover:text-white hover:bg-white/5'
                 }`
               }
             >
-              <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <span className="truncate">{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
         {/* Footer Actions */}
-        <div className="px-3 mt-auto pt-4 border-t border-outline/20 space-y-1">
+        <div className="px-3 mt-auto pt-3 border-t border-outline/20 space-y-1">
+          <Link
+            to="/"
+            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-outline-variant hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors duration-200 text-xs font-medium"
+          >
+            <span className="material-symbols-outlined text-[18px]">public</span>
+            <span>Hospital Website</span>
+          </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-outline-variant hover:text-rose-400 hover:bg-rose-500/10 transition-colors duration-200 text-sm font-medium text-left"
+            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-outline-variant hover:text-rose-400 hover:bg-rose-500/10 transition-colors duration-200 text-xs font-medium text-left cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[22px]">logout</span>
+            <span className="material-symbols-outlined text-[18px]">logout</span>
             <span>Sign Out</span>
           </button>
         </div>

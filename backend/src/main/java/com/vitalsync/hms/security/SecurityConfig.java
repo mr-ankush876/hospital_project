@@ -56,37 +56,59 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Public endpoints
-                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/departments/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        
-                        // Auth endpoints
+
+                        // Auth session endpoints
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
+
+                        // Patient Portal (Strictly for PATIENT or ADMIN fallback)
+                        .requestMatchers("/api/patient/**").hasAnyRole("PATIENT", "ADMIN")
+
+                        // Doctor Portal (Strictly for DOCTOR or ADMIN)
+                        .requestMatchers("/api/doctor/**").hasAnyRole("DOCTOR", "ADMIN")
+
+                        // Private Admin Management endpoints
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Departments Admin Management
+                        .requestMatchers("/api/departments/**").hasRole("ADMIN")
+
+                        // Bed & ICU Management
+                        .requestMatchers(HttpMethod.GET, "/api/beds/**").hasAnyRole("ADMIN", "RECEPTIONIST", "DOCTOR")
+                        .requestMatchers("/api/beds/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+
+                        // Medical Reports
+                        .requestMatchers(HttpMethod.GET, "/api/medical-reports/**").hasAnyRole("ADMIN", "DOCTOR")
+                        .requestMatchers("/api/medical-reports/**").hasAnyRole("ADMIN", "DOCTOR")
 
                         // Dashboard endpoints
                         .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
 
-                        // Doctors management (Admin only for modifications; all authenticated roles can view)
-                        .requestMatchers(HttpMethod.GET, "/api/doctors/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
+                        // Doctors management
+                        .requestMatchers(HttpMethod.GET, "/api/doctors/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT")
                         .requestMatchers("/api/doctors/**").hasRole("ADMIN")
 
-                        // Patients management (Admin & Receptionist can modify; Doctors can view)
+                        // Patients management
                         .requestMatchers(HttpMethod.GET, "/api/patients/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
                         .requestMatchers("/api/patients/**").hasAnyRole("ADMIN", "RECEPTIONIST")
 
-                        // Appointments (Admin, Doctor, Receptionist)
+                        // Appointments
                         .requestMatchers("/api/appointments/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
 
-                        // Prescriptions (Admin & Doctor can create/modify; all can view)
+                        // Prescriptions
                         .requestMatchers(HttpMethod.GET, "/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
                         .requestMatchers("/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR")
 
-                        // Billing (Admin & Receptionist only)
+                        // Billing
                         .requestMatchers("/api/bills/**").hasAnyRole("ADMIN", "RECEPTIONIST")
 
-                        // Reports (Admin only)
+                        // Reports
                         .requestMatchers("/api/reports/**").hasRole("ADMIN")
 
-                        // Settings (Hospital profile is Admin only; user profile is authenticated)
+                        // Settings
                         .requestMatchers("/api/settings/hospital/**").hasRole("ADMIN")
                         .requestMatchers("/api/settings/**").authenticated()
 

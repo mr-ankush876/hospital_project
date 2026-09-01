@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,6 +16,11 @@ import java.time.LocalDateTime;
 public class DoctorDto {
     private Long id;
     private String doctorCode;
+    private Long userId;
+    private String username;
+
+    private Long departmentId;
+    private String departmentName;
 
     @NotBlank(message = "Full name is required")
     private String fullName;
@@ -34,6 +40,7 @@ public class DoctorDto {
     private String experience;
     private String availableDays;
     private String availableTime;
+    private BigDecimal consultationFee;
     private String status;
     private String imageUrl;
     private LocalDateTime createdAt;

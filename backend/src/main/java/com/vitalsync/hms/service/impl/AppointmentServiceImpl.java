@@ -55,6 +55,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentDto create(AppointmentDto dto) {
+        if (dto.getPatientId() == null) {
+            throw new BadRequestException("Patient ID is required for appointment booking");
+        }
         Patient patient = patientRepository.findById(dto.getPatientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + dto.getPatientId()));
 

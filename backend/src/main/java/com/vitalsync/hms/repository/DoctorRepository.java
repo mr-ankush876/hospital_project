@@ -15,6 +15,7 @@ import java.util.Optional;
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     Optional<Doctor> findByDoctorCode(String doctorCode);
     Optional<Doctor> findByEmail(String email);
+    Optional<Doctor> findByUserId(Long userId);
 
     @Query("SELECT d FROM Doctor d WHERE " +
            "(:search IS NULL OR LOWER(d.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
@@ -42,4 +43,6 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
     @Query("SELECT COUNT(d) FROM Doctor d WHERE d.status = 'Available' OR d.status = 'In Surgery'")
     long countActiveDoctors();
+
+    long countByStatus(String status);
 }
