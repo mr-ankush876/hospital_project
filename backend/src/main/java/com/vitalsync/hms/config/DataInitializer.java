@@ -88,7 +88,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setPassword(passwordEncoder.encode(adminPassword));
             admin.setFullName("Dr. Ankush singh (Administrator)");
             admin.setEmail("ankush@vitalsync.com");
-            admin.setPhone("+91 8797254089");
+            admin.setPhone("+91 8797254899");
             admin.setStatus("ACTIVE");
             userRepository.save(admin);
             log.info("Admin account credentials synchronized: username='{}', name='{}'", adminUsername, admin.getFullName());
@@ -98,7 +98,7 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode(adminPassword))
                     .email("ankush@vitalsync.com")
                     .fullName("Dr. Ankush singh (Administrator)")
-                    .phone("+91 8797254089")
+                    .phone("+91 8797254899")
                     .role("ADMIN")
                     .status("ACTIVE")
                     .build();
