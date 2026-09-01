@@ -47,6 +47,7 @@ import Departments from './pages/admin/Departments';
 import BedManagement from './pages/admin/BedManagement';
 import AuditLogs from './pages/admin/AuditLogs';
 import MedicalReportsAdmin from './pages/admin/MedicalReportsAdmin';
+import AdminLogin from './pages/admin/AdminLogin';
 
 // Route guard component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -94,8 +95,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/public-beds" element={<PublicBeds />} />
             <Route path="/services" element={<PublicServices />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin/login" element={<Navigate to="/login?portal=admin" replace />} />
-            <Route path="/admin-login" element={<Navigate to="/login?portal=admin" replace />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
 
             {/* 2. Patient Self-Service Portal */}
             <Route
