@@ -10,7 +10,7 @@ const Login = () => {
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
   
   // Login Form State
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('Ankush876');
   const [password, setPassword] = useState('password123');
   const [showPass, setShowPass] = useState(false);
 
