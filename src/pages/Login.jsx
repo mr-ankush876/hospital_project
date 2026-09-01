@@ -171,7 +171,7 @@ const Login = () => {
   };
 
   const demoCredentials = [
-    { label: 'Administrator', username: 'admin', role: 'ADMIN', name: 'Dr. Sarah Mitchell', color: 'border-primary/30 text-primary bg-primary/5 hover:bg-primary/10' },
+    { label: 'Administrator', username: 'Ankush876', role: 'ADMIN', name: 'Dr. Ankush Kumar', color: 'border-primary/30 text-primary bg-primary/5 hover:bg-primary/10' },
     { label: 'Attending Doctor', username: 'dr.chen', role: 'DOCTOR', name: 'Dr. Robert Chen (Cardiology)', color: 'border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100' },
     { label: 'Reception Desk', username: 'receptionist', role: 'RECEPTIONIST', name: 'Alex Vance', color: 'border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100' },
     { label: 'Patient Portal', username: 'patient.michael', role: 'PATIENT', name: 'Michael Chang (Patient)', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100' },
