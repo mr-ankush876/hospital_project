@@ -9,7 +9,7 @@ const Settings = () => {
   const { user, hasRole, updateUserProfile } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState(hasRole(['ADMIN']) ? 'hospital' : 'profile');
+  const [activeTab, setActiveTab] = useState(hasRole(['Ankush876']) ? 'hospital' : 'profile');
   const [loading, setLoading] = useState(false);
 
   // Hospital Profile Form State
@@ -61,7 +61,7 @@ const Settings = () => {
         // Fallback default state is already initialized
       }
     };
-    if (hasRole(['ADMIN'])) {
+    if (hasRole(['Ankush876'])) {
       fetchHospitalProfile();
     }
   }, [hasRole]);
@@ -144,7 +144,7 @@ const Settings = () => {
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-surface-variant">
-        {hasRole(['ADMIN']) && (
+        {hasRole(['Ankush876']) && (
           <button
             onClick={() => setActiveTab('hospital')}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
@@ -186,7 +186,7 @@ const Settings = () => {
       {/* Tab Content */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm max-w-3xl">
         {/* 1. Hospital Profile Tab */}
-        {activeTab === 'hospital' && hasRole(['ADMIN']) && (
+        {activeTab === 'hospital' && hasRole(['Ankush876']) && (
           <form onSubmit={handleHospitalSubmit} className="space-y-5">
             <div className="flex items-center gap-4 pb-4 border-b border-surface-variant">
               <VitalSyncLogo className="w-12 h-12" />
