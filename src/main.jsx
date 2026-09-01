@@ -154,6 +154,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               }
             />
             <Route
+              path="/patient/billing"
+              element={<Navigate to="/patient/bills" replace />}
+            />
+            <Route
               path="/patient/profile"
               element={
                 <ProtectedRoute allowedRoles={['PATIENT']}>

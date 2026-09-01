@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { publicApi, doctorApi, patientPortalApi } from '../../services/api';
+import { publicApi, doctorApi, departmentApi, patientPortalApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Loader from '../../components/common/Loader';
 import ErrorState from '../../components/common/ErrorState';
@@ -13,7 +13,10 @@ const standardTimeSlots = [
 ];
 
 const PatientBookAppointment = () => {
-  const [doctors, setDoctors] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState('ALL');
+  const [allDoctors, setAllDoctors] = useState([]);
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -31,17 +34,25 @@ const PatientBookAppointment = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const fetchDoctors = async () => {
+  const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
+      const [docRes, depRes] = await Promise.allSettled([
+        publicApi.getDoctors().catch(() => doctorApi.getAll()),
+        departmentApi.getAll(),
+      ]);
+
       let docList = [];
-      try {
-        const res = await publicApi.getDoctors();
-        docList = res.data || [];
-      } catch {
+      if (docRes.status === 'fulfilled' && docRes.value?.data) {
+        docList = Array.isArray(docRes.value.data) ? docRes.value.data : docRes.value.data.content || [];
+      } else {
         const fallbackRes = await doctorApi.getAll();
         docList = Array.isArray(fallbackRes.data) ? fallbackRes.data : fallbackRes.data?.content || [];
+      }
+
+      if (depRes.status === 'fulfilled' && depRes.value?.data) {
+        setDepartments(depRes.value.data || []);
       }
 
       const availableDocs = docList.filter((d) => {
@@ -49,14 +60,15 @@ const PatientBookAppointment = () => {
         return s !== 'inactive' && s !== 'unavailable';
       });
 
-      setDoctors(availableDocs);
+      setAllDoctors(availableDocs);
+      setFilteredDoctors(availableDocs);
       if (availableDocs.length > 0) {
-        setSelectedDoctorId((prev) => prev && availableDocs.some((d) => String(d.id) === String(prev)) ? prev : String(availableDocs[0].id));
+        setSelectedDoctorId(String(availableDocs[0].id));
       } else {
         setSelectedDoctorId('');
       }
     } catch (err) {
-      console.error('Error fetching doctors:', err);
+      console.error('Error fetching booking data:', err);
       setError('Unable to load available attending physicians from the database.');
       toast.error('Failed to retrieve available doctors.');
     } finally {
@@ -65,10 +77,30 @@ const PatientBookAppointment = () => {
   };
 
   useEffect(() => {
-    fetchDoctors();
+    fetchData();
   }, []);
 
-  const selectedDoctor = doctors.find((d) => String(d.id) === String(selectedDoctorId));
+  const handleDepartmentChange = (deptName) => {
+    setSelectedDepartment(deptName);
+    if (deptName === 'ALL') {
+      setFilteredDoctors(allDoctors);
+      if (allDoctors.length > 0) setSelectedDoctorId(String(allDoctors[0].id));
+    } else {
+      const matched = allDoctors.filter(
+        (d) =>
+          d.departmentName?.toLowerCase() === deptName.toLowerCase() ||
+          d.specialization?.toLowerCase() === deptName.toLowerCase()
+      );
+      setFilteredDoctors(matched);
+      if (matched.length > 0) {
+        setSelectedDoctorId(String(matched[0].id));
+      } else {
+        setSelectedDoctorId('');
+      }
+    }
+  };
+
+  const selectedDoctor = allDoctors.find((d) => String(d.id) === String(selectedDoctorId));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -119,10 +151,10 @@ const PatientBookAppointment = () => {
   }
 
   if (error) {
-    return <ErrorState message={error} onRetry={fetchDoctors} />;
+    return <ErrorState message={error} onRetry={fetchData} />;
   }
 
-  if (doctors.length === 0) {
+  if (allDoctors.length === 0) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="space-y-1">
@@ -136,7 +168,7 @@ const PatientBookAppointment = () => {
           title="No Doctors Available"
           description="There are currently no active doctors available for appointment scheduling. Please try again later."
           actionLabel="Retry Loading"
-          onAction={fetchDoctors}
+          onAction={fetchData}
         />
       </div>
     );
@@ -156,23 +188,48 @@ const PatientBookAppointment = () => {
         {/* Booking Form */}
         <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 sm:p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Doctor Selector */}
+            {/* Department / Specialty Filter */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
-                Select Attending Specialist *
+                1. Select Clinical Department / Specialty
               </label>
               <select
-                required
-                value={selectedDoctorId}
-                onChange={(e) => setSelectedDoctorId(e.target.value)}
+                value={selectedDepartment}
+                onChange={(e) => handleDepartmentChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
               >
-                {doctors.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.fullName} — {doc.specialization} (${doc.consultationFee || '100.00'})
+                <option value="ALL">All Clinical Specialties</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.name}>
+                    {dept.name}
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Doctor Selector */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
+                2. Select Attending Specialist *
+              </label>
+              {filteredDoctors.length === 0 ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                  No doctors currently registered under this specialty. Please select another department.
+                </div>
+              ) : (
+                <select
+                  required
+                  value={selectedDoctorId}
+                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
+                >
+                  {filteredDoctors.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.fullName} — {doc.specialization} (${doc.consultationFee || '100.00'})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Date and Time Slot */}

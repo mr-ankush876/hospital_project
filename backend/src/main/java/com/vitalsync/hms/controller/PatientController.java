@@ -64,7 +64,7 @@ public class PatientController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
         patientService.delete(id);
         return ResponseEntity.ok(Map.of("message", "Patient record processed successfully"));

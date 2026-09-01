@@ -486,7 +486,7 @@ const Topbar = ({ onOpenMobile }) => {
                             onClick={() => {
                               setSearchOpen(false);
                               if (user?.role === 'PATIENT') {
-                                navigate('/patient/billing');
+                                navigate('/patient/bills');
                               } else {
                                 navigate('/billing');
                               }

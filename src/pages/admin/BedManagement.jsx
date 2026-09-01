@@ -303,7 +303,7 @@ const BedManagement = () => {
                   type="text"
                   required
                   value={bedForm.bedNumber}
-                  onChange={(e) => setBedForm({ ...form, bedNumber: e.target.value })}
+                  onChange={(e) => setBedForm({ ...bedForm, bedNumber: e.target.value })}
                   placeholder="e.g. ICU-111 or GW-216"
                   className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-mono font-bold"
                 />
