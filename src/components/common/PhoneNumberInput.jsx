@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import examples from 'libphonenumber-js/examples.mobile.json';
 import {
   getCountries,
   getCountryCallingCode,
   parsePhoneNumberFromString,
   isValidPhoneNumber,
-  validatePhoneNumberLength,
-  AsYouType,
-} from 'libphonenumber-js';
+  getExampleNumber,
+} from 'libphonenumber-js/max';
 
 // ISO Country Code to Emoji Flag helper
 const getCountryFlag = (countryCode) => {
-  if (!countryCode || countryCode.length !== 2) return 'ðŸŒ';
+  if (!countryCode || countryCode.length !== 2) return '🌐';
   return countryCode
     .toUpperCase()
     .replace(/./g, (char) => String.fromCodePoint(char.charCodeAt(0) + 127397));
@@ -26,8 +26,8 @@ const getCountryName = (countryCode) => {
   }
 };
 
-// Pre-build the comprehensive list of supported countries (200+)
-const ALL_COUNTRIES = getCountries()
+// Pre-build the comprehensive list of supported countries (200+) sorted by name
+export const ALL_COUNTRIES = getCountries()
   .map((code) => {
     let callingCode = '';
     try {
@@ -45,46 +45,40 @@ const ALL_COUNTRIES = getCountries()
   .filter((c) => c.callingCode !== '')
   .sort((a, b) => a.name.localeCompare(b.name));
 
+// List of calling codes sorted by longest length for prefix matching
+const COUNTRIES_BY_CALLING_CODE_LENGTH = [...ALL_COUNTRIES].sort(
+  (a, b) => b.callingCode.length - a.callingCode.length
+);
+
 /**
- * Metadata-driven check: can the national number accept more digits?
+ * Returns the exact national digit limits and mobile formatting for any country
+ */
+export const getCountryDigitLimits = (countryCode) => {
+  try {
+    const ex = getExampleNumber(countryCode, examples);
+    const mobileLen = ex && ex.nationalNumber ? ex.nationalNumber.length : 10;
+    const maxLen = countryCode === 'GB' ? 11 : countryCode === 'DE' ? 12 : mobileLen;
+    return {
+      expected: mobileLen,
+      max: maxLen,
+      min: mobileLen,
+      example: ex ? ex.nationalNumber : '9876543210',
+      format: ex ? ex.formatNational() : '',
+    };
+  } catch (e) {
+    return { expected: 10, max: 10, min: 10, example: '9876543210', format: '' };
+  }
+};
+
+/**
+ * Checks if input national number can accept more digits based on country rules
  */
 export function canAcceptMoreDigits(digits, country) {
   if (!digits) return true;
-  const clean = digits.replace(/\D/g, '');
+  const clean = String(digits).replace(/\D/g, '');
   if (clean.length === 0) return true;
-  if (clean.length >= 15) return false;
-
-  // If libphonenumber length check reports TOO_LONG, definitely reject
-  if (validatePhoneNumberLength(clean, country) === 'TOO_LONG') {
-    return false;
-  }
-
-  // If the number is currently valid according to libphonenumber metadata
-  const parsed = parsePhoneNumberFromString(clean, country);
-  if (parsed && parsed.isValid()) {
-    // Check if adding any digit 0-9 could form a valid or possible number
-    let canExtend = false;
-    for (let d = 0; d <= 9; d++) {
-      const candidate = clean + d;
-      if (isValidPhoneNumber(candidate, country)) {
-        canExtend = true;
-        break;
-      }
-      const pCand = parsePhoneNumberFromString(candidate, country);
-      if (pCand && pCand.isPossible()) {
-        for (let next = 0; next <= 9; next++) {
-          if (isValidPhoneNumber(candidate + next, country)) {
-            canExtend = true;
-            break;
-          }
-        }
-      }
-      if (canExtend) break;
-    }
-    return canExtend;
-  }
-
-  return true;
+  const limits = getCountryDigitLimits(country);
+  return clean.length < limits.max;
 }
 
 /**
@@ -92,16 +86,69 @@ export function canAcceptMoreDigits(digits, country) {
  */
 export function sanitizeNationalDigits(rawText, country) {
   const digitsOnly = String(rawText || '').replace(/\D/g, '');
-  let result = '';
-  for (let i = 0; i < digitsOnly.length; i++) {
-    const char = digitsOnly[i];
-    if (canAcceptMoreDigits(result, country)) {
-      result += char;
-    } else {
-      break; // Extra digit blocked!
+  const limits = getCountryDigitLimits(country);
+  return digitsOnly.slice(0, limits.max);
+}
+
+/**
+ * Cleanly extracts country code and pure national digits from any incoming string.
+ * Guarantees that the country code (+91, +1, etc.) NEVER leaks into national digits!
+ */
+export function extractCountryAndNational(val, currentCountry = 'IN') {
+  if (!val) return { country: currentCountry, nationalNumber: '' };
+  const str = String(val).trim();
+
+  // Case 1: Value starts with '+' (e.g. "+919876543210" or "+919")
+  if (str.startsWith('+')) {
+    const parsed = parsePhoneNumberFromString(str);
+    if (parsed && parsed.country && parsed.nationalNumber) {
+      const limits = getCountryDigitLimits(parsed.country);
+      return {
+        country: parsed.country,
+        nationalNumber: parsed.nationalNumber.slice(0, limits.max),
+      };
     }
+    // Match against calling codes
+    for (const c of COUNTRIES_BY_CALLING_CODE_LENGTH) {
+      if (str.startsWith(c.callingCode)) {
+        const limits = getCountryDigitLimits(c.code);
+        const national = str.slice(c.callingCode.length).replace(/\D/g, '').slice(0, limits.max);
+        return { country: c.code, nationalNumber: national };
+      }
+    }
+    const limits = getCountryDigitLimits(currentCountry);
+    return {
+      country: currentCountry,
+      nationalNumber: str.replace(/\D/g, '').slice(0, limits.max),
+    };
   }
-  return result;
+
+  // Case 2: Value does not have '+' (e.g. "9876543210" or "919876543210")
+  const clean = str.replace(/\D/g, '');
+  const limits = getCountryDigitLimits(currentCountry);
+  let callingDigits = '';
+  try {
+    callingDigits = getCountryCallingCode(currentCountry);
+  } catch (e) {}
+
+  // If someone passed e.g. "919876543210" where calling code was prepended without '+'
+  if (callingDigits && clean.startsWith(callingDigits) && clean.length > limits.expected) {
+    return {
+      country: currentCountry,
+      nationalNumber: clean.slice(callingDigits.length).slice(0, limits.max),
+    };
+  }
+
+  // Strip leading zero for countries where mobile does not use it (like India)
+  let finalNational = clean;
+  if (currentCountry === 'IN' && finalNational.startsWith('0') && finalNational.length > 1) {
+    finalNational = finalNational.replace(/^0+/, '');
+  }
+
+  return {
+    country: currentCountry,
+    nationalNumber: finalNational.slice(0, limits.max),
+  };
 }
 
 const PhoneNumberInput = ({
@@ -129,36 +176,9 @@ const PhoneNumberInput = ({
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
   const numberInputRef = useRef(null);
+  const lastEmittedValueRef = useRef('');
 
-  // Parse initial or externally changed value
-  useEffect(() => {
-    if (!value) {
-      setNationalNumber('');
-      return;
-    }
-
-    const str = String(value).trim();
-    // If value has international prefix '+'
-    if (str.startsWith('+')) {
-      const parsed = parsePhoneNumberFromString(str);
-      if (parsed) {
-        if (parsed.country && parsed.country !== selectedCountry) {
-          setSelectedCountry(parsed.country);
-        }
-        setNationalNumber(parsed.nationalNumber || '');
-        return;
-      }
-    }
-
-    // Otherwise try parsing with selectedCountry
-    const parsed = parsePhoneNumberFromString(str, selectedCountry);
-    if (parsed) {
-      setNationalNumber(parsed.nationalNumber || str.replace(/\D/g, ''));
-    } else {
-      setNationalNumber(str.replace(/\D/g, ''));
-    }
-  }, [value]);
-
+  // Selected country object & limits
   const currentCountryObj = useMemo(() => {
     return (
       ALL_COUNTRIES.find((c) => c.code === selectedCountry) ||
@@ -167,7 +187,34 @@ const PhoneNumberInput = ({
     );
   }, [selectedCountry]);
 
-  // Filtered country list based on search
+  const currentCountryLimits = useMemo(() => {
+    return getCountryDigitLimits(selectedCountry);
+  }, [selectedCountry]);
+
+  // Sync with incoming external value (e.g. database load or form reset)
+  useEffect(() => {
+    // If incoming value is what we just emitted from this component, don't touch local nationalNumber!
+    if (value === lastEmittedValueRef.current) {
+      return;
+    }
+
+    if (!value) {
+      setNationalNumber('');
+      return;
+    }
+
+    const { country: extractedCountry, nationalNumber: extractedNational } = extractCountryAndNational(
+      value,
+      selectedCountry
+    );
+
+    if (extractedCountry && extractedCountry !== selectedCountry) {
+      setSelectedCountry(extractedCountry);
+    }
+    setNationalNumber(extractedNational);
+  }, [value]);
+
+  // Filtered country list based on search query
   const filteredCountries = useMemo(() => {
     if (!searchQuery.trim()) return ALL_COUNTRIES;
     const q = searchQuery.toLowerCase().trim();
@@ -180,33 +227,38 @@ const PhoneNumberInput = ({
     );
   }, [searchQuery]);
 
-  // Validation logic
+  // Dynamic Validation logic
   const validationError = useMemo(() => {
-    if (!nationalNumber) {
+    const cleanDigits = (nationalNumber || '').replace(/\D/g, '');
+    const limits = currentCountryLimits;
+
+    if (!cleanDigits) {
       if (required && touched) {
         return 'Phone number is required.';
       }
       return null;
     }
 
-    const lengthCheck = validatePhoneNumberLength(nationalNumber, selectedCountry);
-    if (lengthCheck === 'TOO_SHORT') {
-      return 'Please enter a complete valid phone number for the selected country.';
-    }
-    if (lengthCheck === 'TOO_LONG') {
-      return 'Phone number has too many digits for the selected country.';
+    // Requirement: Show clear error if user entered fewer digits than required
+    if (cleanDigits.length < limits.min) {
+      return `Please enter ${limits.min} digits for ${currentCountryObj.name} (${currentCountryObj.callingCode}). Currently entered: ${cleanDigits.length} digits.`;
     }
 
-    // Check validity using libphonenumber-js
-    const isValid = isValidPhoneNumber(nationalNumber, selectedCountry);
+    // If too many digits (failsafe)
+    if (cleanDigits.length > limits.max) {
+      return `Phone number cannot exceed ${limits.max} digits for ${currentCountryObj.name}.`;
+    }
+
+    // Full libphonenumber-js validity check
+    const isValid = isValidPhoneNumber(cleanDigits, selectedCountry);
     if (!isValid && touched) {
-      return 'Please enter a valid phone number for the selected country.';
+      return `Please enter a valid phone number for ${currentCountryObj.name} (${currentCountryObj.callingCode}).`;
     }
 
     return null;
-  }, [nationalNumber, selectedCountry, required, touched]);
+  }, [nationalNumber, selectedCountry, required, touched, currentCountryObj, currentCountryLimits]);
 
-  // Emit change to parent
+  // Emit canonical E.164 change to parent
   const notifyChange = (newNationalNumber, newCountry) => {
     const countryObj = ALL_COUNTRIES.find((c) => c.code === newCountry) || currentCountryObj;
     const cleanDigits = (newNationalNumber || '').replace(/\D/g, '');
@@ -217,7 +269,7 @@ const PhoneNumberInput = ({
     if (cleanDigits) {
       const parsed = parsePhoneNumberFromString(cleanDigits, newCountry);
       if (parsed && parsed.isValid()) {
-        fullE164 = parsed.number; // Canonical E.164 with trunk prefix correctly handled
+        fullE164 = parsed.number; // e.g. "+919876543210"
         isValid = true;
       } else {
         const stripped = cleanDigits.startsWith('0') && cleanDigits.length > 1 ? cleanDigits.replace(/^0+/, '') : cleanDigits;
@@ -227,6 +279,8 @@ const PhoneNumberInput = ({
     } else {
       isValid = !required;
     }
+
+    lastEmittedValueRef.current = fullE164;
 
     if (onChange) {
       onChange(fullE164, {
@@ -240,7 +294,7 @@ const PhoneNumberInput = ({
     }
   };
 
-  // Keyboard navigation and prevention of extra digits
+  // Keyboard navigation & strict prevention of extra digits
   const handleKeyDown = (e) => {
     // Allow navigation, control keys, backspace, delete, tab, arrows
     if (
@@ -263,19 +317,20 @@ const PhoneNumberInput = ({
       return;
     }
 
-    // Block non-digit keys
+    // Block any non-digit key
     if (!/^\d$/.test(e.key)) {
       e.preventDefault();
       return;
     }
 
+    // Allow replacing if user highlighted/selected text
     const selStart = numberInputRef.current?.selectionStart;
     const selEnd = numberInputRef.current?.selectionEnd;
     if (selStart !== null && selEnd !== null && selStart !== selEnd) {
-      return; // Selection will be replaced
+      return;
     }
 
-    // MANDATORY REQUIREMENT: Block extra digits beyond valid country structure
+    // STRICT REQUIREMENT: Block typing extra digits beyond valid country length
     if (!canAcceptMoreDigits(nationalNumber, selectedCountry)) {
       e.preventDefault();
     }
@@ -283,7 +338,10 @@ const PhoneNumberInput = ({
 
   const handleInputChange = (e) => {
     const rawVal = e.target.value;
-    const sanitized = sanitizeNationalDigits(rawVal, selectedCountry);
+    let sanitized = sanitizeNationalDigits(rawVal, selectedCountry);
+    if (selectedCountry === 'IN' && sanitized.startsWith('0') && sanitized.length > 1) {
+      sanitized = sanitized.replace(/^0+/, '');
+    }
     setNationalNumber(sanitized);
     notifyChange(sanitized, selectedCountry);
   };
@@ -293,16 +351,16 @@ const PhoneNumberInput = ({
     const pastedText = (e.clipboardData || window.clipboardData).getData('text');
     if (!pastedText) return;
 
-    // If user pasted an international format with '+', try to detect country
+    // If user pasted full international format with '+', detect country
     if (pastedText.trim().startsWith('+')) {
-      const parsed = parsePhoneNumberFromString(pastedText.trim());
-      if (parsed && parsed.country) {
-        setSelectedCountry(parsed.country);
-        const sanitized = sanitizeNationalDigits(parsed.nationalNumber, parsed.country);
-        setNationalNumber(sanitized);
-        notifyChange(sanitized, parsed.country);
-        return;
-      }
+      const { country: parsedCountry, nationalNumber: parsedNational } = extractCountryAndNational(
+        pastedText.trim(),
+        selectedCountry
+      );
+      setSelectedCountry(parsedCountry);
+      setNationalNumber(parsedNational);
+      notifyChange(parsedNational, parsedCountry);
+      return;
     }
 
     // Handle replacement if text is selected
@@ -316,7 +374,10 @@ const PhoneNumberInput = ({
       targetText = nationalNumber + pastedText;
     }
 
-    const sanitized = sanitizeNationalDigits(targetText, selectedCountry);
+    let sanitized = sanitizeNationalDigits(targetText, selectedCountry);
+    if (selectedCountry === 'IN' && sanitized.startsWith('0') && sanitized.length > 1) {
+      sanitized = sanitized.replace(/^0+/, '');
+    }
     setNationalNumber(sanitized);
     notifyChange(sanitized, selectedCountry);
   };
@@ -329,7 +390,11 @@ const PhoneNumberInput = ({
     setFocusedIndex(-1);
 
     // Re-sanitize existing national number under new country rules
-    const reSanitized = sanitizeNationalDigits(nationalNumber, newCountry);
+    const newLimits = getCountryDigitLimits(newCountry);
+    let reSanitized = nationalNumber.slice(0, newLimits.max);
+    if (newCountry === 'IN' && reSanitized.startsWith('0') && reSanitized.length > 1) {
+      reSanitized = reSanitized.replace(/^0+/, '');
+    }
     setNationalNumber(reSanitized);
     notifyChange(reSanitized, newCountry);
 
@@ -477,13 +542,14 @@ const PhoneNumberInput = ({
           )}
         </div>
 
-        {/* National Number Input Field */}
+        {/* National Number Input Field - PURE DIGITS ONLY, NO COUNTRY CODE PREPENDED */}
         <input
           ref={numberInputRef}
           id={id || name}
           name={name}
           type="tel"
-          inputMode="tel"
+          inputMode="numeric"
+          maxLength={currentCountryLimits.max}
           disabled={disabled}
           required={required}
           value={nationalNumber}
@@ -491,7 +557,10 @@ const PhoneNumberInput = ({
           onChange={handleInputChange}
           onPaste={handlePaste}
           onBlur={() => setTouched(true)}
-          placeholder={placeholder || `e.g. ${currentCountryObj.code === 'IN' ? '9876543210' : 'Mobile number'}`}
+          placeholder={
+            placeholder ||
+            `e.g. ${currentCountryLimits.example} (${currentCountryLimits.expected} digits)`
+          }
           className={`w-full px-3.5 py-2.5 bg-surface border border-l-0 border-outline-variant rounded-r-xl text-sm font-mono text-on-surface focus:outline-none focus:border-primary transition-colors h-[42px] ${
             displayError ? 'border-rose-500 focus:border-rose-600 bg-rose-50/10' : ''
           } ${disabled ? 'opacity-50 cursor-not-allowed bg-surface-container-low' : ''}`}
@@ -499,13 +568,29 @@ const PhoneNumberInput = ({
         />
       </div>
 
-      {/* Validation Error Message */}
-      {displayError && (
-        <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1 mt-1 animate-in fade-in duration-150">
-          <span className="material-symbols-outlined text-xs">error</span>
-          <span>{displayError}</span>
-        </p>
-      )}
+      {/* Validation Message & Digit Counter */}
+      <div className="flex items-center justify-between px-1">
+        {displayError ? (
+          <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1 mt-1 animate-in fade-in duration-150">
+            <span className="material-symbols-outlined text-xs">error</span>
+            <span>{displayError}</span>
+          </p>
+        ) : (
+          touched &&
+          nationalNumber &&
+          isValidPhoneNumber(nationalNumber, selectedCountry) && (
+            <p className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+              <span className="material-symbols-outlined text-xs">check_circle</span>
+              <span>Valid {currentCountryObj.name} phone number</span>
+            </p>
+          )
+        )}
+        {nationalNumber && (
+          <span className="text-[10px] text-on-surface-variant font-mono ml-auto mt-1">
+            {nationalNumber.length} / {currentCountryLimits.expected} digits
+          </span>
+        )}
+      </div>
     </div>
   );
 };
