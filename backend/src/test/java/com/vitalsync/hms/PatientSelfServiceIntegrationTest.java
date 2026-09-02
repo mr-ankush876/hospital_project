@@ -66,12 +66,15 @@ class PatientSelfServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("Patient can book appointment with real doctor")
+    @DisplayName("Patient can book appointment on doctor's available working day")
     @WithMockUser(username = "patient.michael", roles = {"PATIENT"})
     void testPatientBookAppointment() throws Exception {
+        // Doctor 1 is Dr. Robert Chen (Mon, Wed, Fri) -> find next Wednesday
+        LocalDate nextWed = LocalDate.now().plusDays(1).with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.WEDNESDAY));
+
         AppointmentDto dto = AppointmentDto.builder()
                 .doctorId(1L)
-                .appointmentDate(LocalDate.now().plusDays(5))
+                .appointmentDate(nextWed)
                 .appointmentTime("03:00 PM")
                 .reason("Cardiac Follow-up Evaluation")
                 .notes("Review of medication efficacy")
@@ -84,6 +87,28 @@ class PatientSelfServiceIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.appointmentCode").isNotEmpty())
                 .andExpect(jsonPath("$.patientName").value("Michael Chang"));
+    }
+
+    @Test
+    @DisplayName("Patient booking rejected on doctor's unavailable day")
+    @WithMockUser(username = "patient.michael", roles = {"PATIENT"})
+    void testPatientBookAppointmentUnavailableDayRejected() throws Exception {
+        // Doctor 1 is Dr. Robert Chen (Mon, Wed, Fri) -> select next Thursday (off day)
+        LocalDate nextThu = LocalDate.now().plusDays(1).with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.THURSDAY));
+
+        AppointmentDto dto = AppointmentDto.builder()
+                .doctorId(1L)
+                .appointmentDate(nextThu)
+                .appointmentTime("03:00 PM")
+                .reason("Cardiac Follow-up Evaluation")
+                .status("Confirmed")
+                .build();
+
+        mockMvc.perform(post("/api/patient/appointments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("is not available on")));
     }
 
     @Test

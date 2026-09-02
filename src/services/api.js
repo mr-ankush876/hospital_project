@@ -63,6 +63,7 @@ export const publicApi = {
   getHospitalInfo: () => api.get('/public/hospital-info'),
   getDoctors: () => api.get('/public/doctors'),
   getDoctorById: (id) => api.get(`/public/doctors/${id}`),
+  getDoctorAvailability: (id, date) => api.get(`/public/doctors/${id}/availability`, { params: { date } }),
   getDepartments: () => api.get('/public/departments'),
   getBedAvailability: () => api.get('/public/beds/availability'),
 };
@@ -155,6 +156,7 @@ export const patientApi = {
 export const doctorApi = {
   getAll: (params) => api.get('/doctors', { params }),
   getById: (id) => api.get(`/doctors/${id}`),
+  getAvailability: (id, date) => api.get(`/doctors/${id}/availability`, { params: { date } }),
   create: (data) => api.post('/doctors', data),
   update: (id, data) => api.put(`/doctors/${id}`, data),
   delete: (id) => api.delete(`/doctors/${id}`),

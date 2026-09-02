@@ -157,8 +157,21 @@ public class PatientPortalServiceImpl implements PatientPortalService {
             throw new BadRequestException("Appointment date must be today or in the future");
         }
 
+        // Validate doctor's specific working days
+        if (!com.vitalsync.hms.util.DoctorScheduleUtil.isDoctorAvailableOnDate(doctor, dto.getAppointmentDate())) {
+            String friendlyDate = com.vitalsync.hms.util.DoctorScheduleUtil.formatFriendlyDate(dto.getAppointmentDate());
+            String docName = com.vitalsync.hms.util.DoctorScheduleUtil.formatDoctorName(doctor.getFullName());
+            throw new ConflictException(docName + " is not available on " + friendlyDate + ".");
+        }
+
         if (dto.getAppointmentTime() == null || dto.getAppointmentTime().trim().isEmpty()) {
             throw new BadRequestException("Appointment time slot is required");
+        }
+
+        // Validate doctor's working hours
+        if (!com.vitalsync.hms.util.DoctorScheduleUtil.isTimeWithinWorkingHours(dto.getAppointmentTime(), doctor.getAvailableTime())) {
+            String docName = com.vitalsync.hms.util.DoctorScheduleUtil.formatDoctorName(doctor.getFullName());
+            throw new BadRequestException("Selected time slot " + dto.getAppointmentTime() + " is outside " + docName + "'s working hours (" + doctor.getAvailableTime() + ")");
         }
 
         // Prevent double booking for the doctor

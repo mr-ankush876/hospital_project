@@ -64,8 +64,25 @@ public class AppointmentServiceImpl implements AppointmentService {
         Doctor doctor = doctorRepository.findById(dto.getDoctorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + dto.getDoctorId()));
 
-        if ("Unavailable".equalsIgnoreCase(doctor.getStatus())) {
-            throw new BadRequestException("Doctor " + doctor.getFullName() + " is currently marked as Unavailable");
+        if ("Unavailable".equalsIgnoreCase(doctor.getStatus()) || "On Leave".equalsIgnoreCase(doctor.getStatus())) {
+            throw new BadRequestException("Doctor " + doctor.getFullName() + " is currently " + doctor.getStatus());
+        }
+
+        if (dto.getAppointmentDate() == null) {
+            throw new BadRequestException("Appointment date is required");
+        }
+
+        // Validate doctor's specific working days
+        if (!com.vitalsync.hms.util.DoctorScheduleUtil.isDoctorAvailableOnDate(doctor, dto.getAppointmentDate())) {
+            String friendlyDate = com.vitalsync.hms.util.DoctorScheduleUtil.formatFriendlyDate(dto.getAppointmentDate());
+            String docName = com.vitalsync.hms.util.DoctorScheduleUtil.formatDoctorName(doctor.getFullName());
+            throw new ConflictException(docName + " is not available on " + friendlyDate + ".");
+        }
+
+        // Validate doctor's working hours
+        if (!com.vitalsync.hms.util.DoctorScheduleUtil.isTimeWithinWorkingHours(dto.getAppointmentTime(), doctor.getAvailableTime())) {
+            String docName = com.vitalsync.hms.util.DoctorScheduleUtil.formatDoctorName(doctor.getFullName());
+            throw new BadRequestException("Selected time slot " + dto.getAppointmentTime() + " is outside " + docName + "'s working hours (" + doctor.getAvailableTime() + ")");
         }
 
         // Check for conflicting booking for the doctor at the same date and time
@@ -111,6 +128,27 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Doctor doctor = doctorRepository.findById(dto.getDoctorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + dto.getDoctorId()));
+
+        if ("Unavailable".equalsIgnoreCase(doctor.getStatus()) || "On Leave".equalsIgnoreCase(doctor.getStatus())) {
+            throw new BadRequestException("Doctor " + doctor.getFullName() + " is currently " + doctor.getStatus());
+        }
+
+        if (dto.getAppointmentDate() == null) {
+            throw new BadRequestException("Appointment date is required");
+        }
+
+        // Validate doctor's specific working days on update/reschedule
+        if (!com.vitalsync.hms.util.DoctorScheduleUtil.isDoctorAvailableOnDate(doctor, dto.getAppointmentDate())) {
+            String friendlyDate = com.vitalsync.hms.util.DoctorScheduleUtil.formatFriendlyDate(dto.getAppointmentDate());
+            String docName = com.vitalsync.hms.util.DoctorScheduleUtil.formatDoctorName(doctor.getFullName());
+            throw new ConflictException(docName + " is not available on " + friendlyDate + ".");
+        }
+
+        // Validate doctor's working hours on update/reschedule
+        if (!com.vitalsync.hms.util.DoctorScheduleUtil.isTimeWithinWorkingHours(dto.getAppointmentTime(), doctor.getAvailableTime())) {
+            String docName = com.vitalsync.hms.util.DoctorScheduleUtil.formatDoctorName(doctor.getFullName());
+            throw new BadRequestException("Selected time slot " + dto.getAppointmentTime() + " is outside " + docName + "'s working hours (" + doctor.getAvailableTime() + ")");
+        }
 
         // Conflict check excluding current appointment
         boolean hasConflict = appointmentRepository.existsConflictingAppointment(

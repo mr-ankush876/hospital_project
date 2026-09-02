@@ -55,6 +55,62 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
+    public com.vitalsync.hms.dto.DoctorAvailabilityDto getDoctorAvailability(Long id, java.time.LocalDate date) {
+        Doctor doctor = doctorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + id));
+
+        java.time.LocalDate queryDate = date != null ? date : java.time.LocalDate.now();
+        boolean isWorkingOnDay = com.vitalsync.hms.util.DoctorScheduleUtil.isDoctorAvailableOnDate(doctor, queryDate);
+
+        List<String> allSlots = com.vitalsync.hms.util.DoctorScheduleUtil.generateTimeSlots(doctor.getAvailableTime());
+        List<com.vitalsync.hms.entity.Appointment> existingApts = appointmentRepository.findByDoctorIdAndAppointmentDate(id, queryDate);
+        java.util.Set<String> bookedSlotSet = existingApts.stream()
+                .filter(a -> !"Cancelled".equalsIgnoreCase(a.getStatus()))
+                .map(com.vitalsync.hms.entity.Appointment::getAppointmentTime)
+                .collect(Collectors.toSet());
+
+        List<String> bookedSlots = allSlots.stream()
+                .filter(bookedSlotSet::contains)
+                .collect(Collectors.toList());
+
+        List<String> availableSlots = isWorkingOnDay
+                ? allSlots.stream().filter(s -> !bookedSlotSet.contains(s)).collect(Collectors.toList())
+                : java.util.Collections.emptyList();
+
+        String friendlyDate = com.vitalsync.hms.util.DoctorScheduleUtil.formatFriendlyDate(queryDate);
+        String docName = com.vitalsync.hms.util.DoctorScheduleUtil.formatDoctorName(doctor.getFullName());
+        String message;
+        if (!isWorkingOnDay) {
+            message = docName + " is not available on " + friendlyDate + ".";
+        } else if (availableSlots.isEmpty()) {
+            message = docName + " has no remaining appointment slots on " + friendlyDate + ".";
+        } else {
+            message = docName + " is available on " + friendlyDate + ".";
+        }
+
+        List<String> activeDayNames = com.vitalsync.hms.util.DoctorScheduleUtil.parseAvailableDays(doctor.getAvailableDays())
+                .stream().map(java.time.DayOfWeek::name).collect(Collectors.toList());
+
+        return com.vitalsync.hms.dto.DoctorAvailabilityDto.builder()
+                .doctorId(doctor.getId())
+                .doctorCode(doctor.getDoctorCode())
+                .doctorName(doctor.getFullName())
+                .specialization(doctor.getSpecialization())
+                .availableDays(doctor.getAvailableDays())
+                .activeWorkingDays(activeDayNames)
+                .availableTime(doctor.getAvailableTime())
+                .consultationFee(doctor.getConsultationFee())
+                .status(doctor.getStatus())
+                .selectedDate(queryDate)
+                .available(isWorkingOnDay && !availableSlots.isEmpty())
+                .message(message)
+                .allTimeSlots(allSlots)
+                .availableSlots(availableSlots)
+                .bookedSlots(bookedSlots)
+                .build();
+    }
+
+    @Override
     @Transactional
     public DoctorDto create(DoctorDto dto) {
         doctorRepository.findByEmail(dto.getEmail()).ifPresent(d -> {

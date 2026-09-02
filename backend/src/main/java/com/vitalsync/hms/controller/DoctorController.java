@@ -48,6 +48,13 @@ public class DoctorController {
         return ResponseEntity.ok(doctor);
     }
 
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<com.vitalsync.hms.dto.DoctorAvailabilityDto> getAvailability(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date) {
+        return ResponseEntity.ok(doctorService.getDoctorAvailability(id, date));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DoctorDto> create(@Valid @RequestBody DoctorDto dto) {

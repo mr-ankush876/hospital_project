@@ -9,6 +9,12 @@ import EmptyState from '../components/common/EmptyState';
 import ErrorState from '../components/common/ErrorState';
 import { TableSkeleton } from '../components/common/Loader';
 import Pagination from '../components/common/Pagination';
+import {
+  isDoctorAvailableOnDate,
+  formatFriendlyDate,
+  generateDoctorTimeSlots,
+  formatDoctorName,
+} from '../utils/doctorSchedule';
 
 const Appointments = () => {
   const { user, hasRole } = useAuth();
@@ -112,13 +118,23 @@ const Appointments = () => {
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedAppointments = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  const selectedDoctorForForm = doctors.find((d) => String(d.id) === String(formData.doctorId));
+  const isFormDoctorAvailable = selectedDoctorForForm && formData.appointmentDate
+    ? isDoctorAvailableOnDate(selectedDoctorForForm, formData.appointmentDate)
+    : true;
+  const currentDoctorSlots = selectedDoctorForForm
+    ? generateDoctorTimeSlots(selectedDoctorForForm.availableTime)
+    : timeSlots;
+
   const openAddModal = () => {
     setEditAppointment(null);
+    const initialDoc = doctors.length > 0 ? doctors[0] : null;
+    const initialSlots = initialDoc ? generateDoctorTimeSlots(initialDoc.availableTime) : timeSlots;
     setFormData({
       patientId: patients.length > 0 ? patients[0].id : '',
-      doctorId: doctors.length > 0 ? doctors[0].id : '',
+      doctorId: initialDoc ? initialDoc.id : '',
       appointmentDate: new Date().toISOString().split('T')[0],
-      appointmentTime: '09:00 AM',
+      appointmentTime: initialSlots.length > 0 ? initialSlots[0] : '09:00 AM',
       reason: '',
       notes: '',
       status: 'Scheduled',
@@ -128,11 +144,14 @@ const Appointments = () => {
 
   const openEditModal = (apt) => {
     setEditAppointment(apt);
+    const docId = apt.doctor?.id || apt.doctorId || '';
+    const doc = doctors.find((d) => String(d.id) === String(docId));
+    const slots = doc ? generateDoctorTimeSlots(doc.availableTime) : timeSlots;
     setFormData({
       patientId: apt.patient?.id || apt.patientId || '',
-      doctorId: apt.doctor?.id || apt.doctorId || '',
+      doctorId: docId,
       appointmentDate: apt.appointmentDate || '',
-      appointmentTime: apt.appointmentTime || '09:00 AM',
+      appointmentTime: apt.appointmentTime || (slots.length > 0 ? slots[0] : '09:00 AM'),
       reason: apt.reason || '',
       notes: apt.notes || '',
       status: apt.status || 'Scheduled',
@@ -144,6 +163,13 @@ const Appointments = () => {
     e.preventDefault();
     if (!formData.patientId || !formData.doctorId || !formData.appointmentDate || !formData.appointmentTime) {
       toast.warning('Please fill in all required appointment fields.');
+      return;
+    }
+
+    if (selectedDoctorForForm && !isFormDoctorAvailable) {
+      const docName = formatDoctorName(selectedDoctorForForm.fullName);
+      const friendlyDate = formatFriendlyDate(formData.appointmentDate);
+      toast.error(`${docName} is not available on ${friendlyDate}. (Working days: ${selectedDoctorForForm.availableDays || 'Mon - Fri'})`);
       return;
     }
 
@@ -504,14 +530,23 @@ const Appointments = () => {
               </label>
               <select
                 value={formData.doctorId}
-                onChange={(e) => setFormData({ ...formData, doctorId: e.target.value })}
+                onChange={(e) => {
+                  const newDocId = e.target.value;
+                  const doc = doctors.find((d) => String(d.id) === String(newDocId));
+                  const slots = doc ? generateDoctorTimeSlots(doc.availableTime) : timeSlots;
+                  setFormData({
+                    ...formData,
+                    doctorId: newDocId,
+                    appointmentTime: slots.length > 0 ? slots[0] : formData.appointmentTime,
+                  });
+                }}
                 required
                 className="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary"
               >
                 <option value="">Choose doctor...</option>
                 {doctors.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.fullName} — {d.specialization} ({d.status})
+                    {d.fullName} — {d.specialization} ({d.availableDays || 'Mon - Fri'})
                   </option>
                 ))}
               </select>
@@ -531,6 +566,27 @@ const Appointments = () => {
               />
             </div>
 
+            {/* Availability Alert Banner in Modal */}
+            {selectedDoctorForForm && formData.appointmentDate && (
+              <div className="md:col-span-2">
+                {isFormDoctorAvailable ? (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-emerald-600">check_circle</span>
+                    <span>
+                      <strong>{formatDoctorName(selectedDoctorForForm.fullName)}</strong> is available on {formatFriendlyDate(formData.appointmentDate)} ({selectedDoctorForForm.availableTime || '09:00 AM - 05:00 PM'}).
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-rose-50 border border-rose-200/80 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-rose-600">event_busy</span>
+                    <span>
+                      <strong>{formatDoctorName(selectedDoctorForForm.fullName)}</strong> is not available on {formatFriendlyDate(formData.appointmentDate)}. Configured working days: <strong>{selectedDoctorForForm.availableDays || 'Mon - Fri'}</strong>.
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Appointment Time */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
@@ -540,13 +596,20 @@ const Appointments = () => {
                 value={formData.appointmentTime}
                 onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
                 required
-                className="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary"
+                disabled={!isFormDoctorAvailable}
+                className={`w-full bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary ${
+                  !isFormDoctorAvailable ? 'opacity-60 cursor-not-allowed bg-surface-variant/40' : ''
+                }`}
               >
-                {timeSlots.map((ts) => (
-                  <option key={ts} value={ts}>
-                    {ts}
-                  </option>
-                ))}
+                {isFormDoctorAvailable ? (
+                  currentDoctorSlots.map((ts) => (
+                    <option key={ts} value={ts}>
+                      {ts}
+                    </option>
+                  ))
+                ) : (
+                  <option>Physician Unavailable</option>
+                )}
               </select>
             </div>
 

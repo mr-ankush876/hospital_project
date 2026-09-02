@@ -17,6 +17,7 @@ import java.util.List;
 public class PublicController {
 
     private final PublicService publicService;
+    private final com.vitalsync.hms.service.DoctorService doctorService;
 
     @GetMapping("/hospital-info")
     public ResponseEntity<HospitalSettingDto> getHospitalInfo() {
@@ -31,6 +32,13 @@ public class PublicController {
     @GetMapping("/doctors/{id}")
     public ResponseEntity<PublicDoctorDto> getDoctorById(@PathVariable Long id) {
         return ResponseEntity.ok(publicService.getPublicDoctorById(id));
+    }
+
+    @GetMapping("/doctors/{id}/availability")
+    public ResponseEntity<com.vitalsync.hms.dto.DoctorAvailabilityDto> getDoctorAvailability(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date) {
+        return ResponseEntity.ok(doctorService.getDoctorAvailability(id, date));
     }
 
     @GetMapping("/departments")

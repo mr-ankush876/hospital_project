@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { publicApi, doctorApi, departmentApi, patientPortalApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Loader from '../../components/common/Loader';
 import ErrorState from '../../components/common/ErrorState';
 import EmptyState from '../../components/common/EmptyState';
-
-const standardTimeSlots = [
-  '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-  '11:00 AM', '11:30 AM', '12:00 PM', '02:00 PM', '02:30 PM', '03:00 PM',
-  '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
-];
+import {
+  isDoctorAvailableOnDate,
+  formatFriendlyDate,
+  generateDoctorTimeSlots,
+  formatDoctorName,
+} from '../../utils/doctorSchedule';
 
 const PatientBookAppointment = () => {
   const [departments, setDepartments] = useState([]);
@@ -63,7 +63,12 @@ const PatientBookAppointment = () => {
       setAllDoctors(availableDocs);
       setFilteredDoctors(availableDocs);
       if (availableDocs.length > 0) {
-        setSelectedDoctorId(String(availableDocs[0].id));
+        const firstDoc = availableDocs[0];
+        setSelectedDoctorId(String(firstDoc.id));
+        const initialSlots = generateDoctorTimeSlots(firstDoc.availableTime);
+        if (initialSlots.length > 0) {
+          setAppointmentTime(initialSlots[0]);
+        }
       } else {
         setSelectedDoctorId('');
       }
@@ -82,30 +87,49 @@ const PatientBookAppointment = () => {
 
   const handleDepartmentChange = (deptName) => {
     setSelectedDepartment(deptName);
-    if (deptName === 'ALL') {
-      setFilteredDoctors(allDoctors);
-      if (allDoctors.length > 0) setSelectedDoctorId(String(allDoctors[0].id));
-    } else {
-      const matched = allDoctors.filter(
+    let matched = allDoctors;
+    if (deptName !== 'ALL') {
+      matched = allDoctors.filter(
         (d) =>
           d.departmentName?.toLowerCase() === deptName.toLowerCase() ||
           d.specialization?.toLowerCase() === deptName.toLowerCase()
       );
-      setFilteredDoctors(matched);
-      if (matched.length > 0) {
-        setSelectedDoctorId(String(matched[0].id));
-      } else {
-        setSelectedDoctorId('');
-      }
+    }
+    setFilteredDoctors(matched);
+    if (matched.length > 0) {
+      const nextDoc = matched[0];
+      setSelectedDoctorId(String(nextDoc.id));
+      const slots = generateDoctorTimeSlots(nextDoc.availableTime);
+      if (slots.length > 0) setAppointmentTime(slots[0]);
+    } else {
+      setSelectedDoctorId('');
     }
   };
 
   const selectedDoctor = allDoctors.find((d) => String(d.id) === String(selectedDoctorId));
 
+  // Dynamic doctor availability & time slot evaluation
+  const isAvailable = selectedDoctor ? isDoctorAvailableOnDate(selectedDoctor, appointmentDate) : false;
+  const doctorTimeSlots = selectedDoctor ? generateDoctorTimeSlots(selectedDoctor.availableTime) : [];
+  const doctorDisplayName = selectedDoctor ? formatDoctorName(selectedDoctor.fullName) : 'Doctor';
+  const friendlySelectedDate = formatFriendlyDate(appointmentDate);
+
+  // Recalculate time slot when doctor or availability changes
+  const handleDoctorChange = (docId) => {
+    setSelectedDoctorId(docId);
+    const doc = allDoctors.find((d) => String(d.id) === String(docId));
+    if (doc) {
+      const slots = generateDoctorTimeSlots(doc.availableTime);
+      if (slots.length > 0) {
+        setAppointmentTime(slots[0]);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!selectedDoctorId) {
+    if (!selectedDoctor) {
       toast.error('Please select an attending doctor.');
       return;
     }
@@ -118,6 +142,16 @@ const PatientBookAppointment = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     if (appointmentDate < todayStr) {
       toast.error('Cannot book appointments on past dates.');
+      return;
+    }
+
+    if (!isAvailable) {
+      toast.error(`${doctorDisplayName} is not available on ${friendlySelectedDate}.`);
+      return;
+    }
+
+    if (!appointmentTime) {
+      toast.error('Please choose an available appointment time slot.');
       return;
     }
 
@@ -139,7 +173,7 @@ const PatientBookAppointment = () => {
       console.error('Booking error:', err);
       const errorMsg =
         err?.response?.data?.message ||
-        'Unable to book appointment. Please try another time slot or physician.';
+        'Unable to book appointment. Please check doctor working schedule and try again.';
       toast.error(errorMsg);
     } finally {
       setSubmitting(false);
@@ -180,7 +214,7 @@ const PatientBookAppointment = () => {
       <div className="space-y-1">
         <h1 className="font-headline-lg text-headline-lg text-on-surface">Book Online Consultation</h1>
         <p className="text-xs text-on-surface-variant">
-          Schedule an in-person or clinical evaluation with our medical specialists. Real-time availability verified on MySQL database.
+          Schedule a clinical evaluation with our medical specialists. Doctor schedules and working days are verified in real time.
         </p>
       </div>
 
@@ -220,12 +254,12 @@ const PatientBookAppointment = () => {
                 <select
                   required
                   value={selectedDoctorId}
-                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  onChange={(e) => handleDoctorChange(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
                 >
                   {filteredDoctors.map((doc) => (
                     <option key={doc.id} value={doc.id}>
-                      {doc.fullName} — {doc.specialization} (${doc.consultationFee || '100.00'})
+                      {doc.fullName} — {doc.specialization} ({doc.availableDays || 'Mon - Fri'})
                     </option>
                   ))}
                 </select>
@@ -252,20 +286,60 @@ const PatientBookAppointment = () => {
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
                   Available Time Slot *
                 </label>
-                <select
-                  required
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
-                >
-                  {standardTimeSlots.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
+                {isAvailable ? (
+                  <select
+                    required
+                    value={appointmentTime}
+                    onChange={(e) => setAppointmentTime(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
+                  >
+                    {doctorTimeSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    disabled
+                    className="w-full px-3.5 py-2.5 bg-surface-variant/40 border border-outline-variant rounded-xl text-xs text-on-surface-variant opacity-60 cursor-not-allowed font-medium"
+                  >
+                    <option>No time slots available</option>
+                  </select>
+                )}
               </div>
             </div>
+
+            {/* Availability Status Banner */}
+            {selectedDoctor && (
+              <div>
+                {isAvailable ? (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800 flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-base text-emerald-600 shrink-0 mt-0.5">check_circle</span>
+                    <div>
+                      <p className="font-bold text-emerald-900">
+                        {doctorDisplayName} is available on {friendlySelectedDate}.
+                      </p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">
+                        Consultation hours: <strong>{selectedDoctor.availableTime || '09:00 AM - 05:00 PM'}</strong> ({selectedDoctor.availableDays || 'Mon - Fri'})
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-rose-50 border border-rose-200/80 rounded-xl text-xs text-rose-800 flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-base text-rose-600 shrink-0 mt-0.5">event_busy</span>
+                    <div>
+                      <p className="font-bold text-rose-900">
+                        {doctorDisplayName} is not available on {friendlySelectedDate}.
+                      </p>
+                      <p className="text-[11px] text-rose-700 mt-0.5">
+                        Configured working days: <strong>{selectedDoctor.availableDays || 'Mon - Fri'}</strong>. Please choose another date or select a different specialist.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Reason */}
             <div>
@@ -298,11 +372,17 @@ const PatientBookAppointment = () => {
 
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full bg-primary text-on-primary font-bold py-3 rounded-xl hover:bg-primary-container transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 text-sm cursor-pointer"
+              disabled={submitting || !isAvailable}
+              className={`w-full font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm ${
+                !isAvailable || submitting
+                  ? 'bg-surface-variant text-on-surface-variant/60 cursor-not-allowed border border-outline-variant/60 shadow-none'
+                  : 'bg-primary text-on-primary hover:bg-primary-container cursor-pointer'
+              }`}
             >
               {submitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : !isAvailable ? (
+                <span>Physician Unavailable on Selected Date</span>
               ) : (
                 <span>Confirm & Reserve Appointment &rarr;</span>
               )}
@@ -314,7 +394,7 @@ const PatientBookAppointment = () => {
         <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm space-y-4 flex flex-col justify-between">
           <div className="space-y-4">
             <h3 className="font-headline-md text-headline-md text-on-surface border-b border-surface-variant pb-3">
-              Selected Doctor
+              Selected Specialist
             </h3>
 
             {selectedDoctor ? (
@@ -335,7 +415,7 @@ const PatientBookAppointment = () => {
                 <div className="p-3 rounded-xl bg-surface border border-outline-variant/50 space-y-1.5">
                   <p><strong>Qualification:</strong> {selectedDoctor.qualification || 'MD / MBBS'}</p>
                   <p><strong>Experience:</strong> {selectedDoctor.experience || '10+ Years'}</p>
-                  <p><strong>Working Days:</strong> {selectedDoctor.availableDays || 'Mon - Fri'}</p>
+                  <p><strong>Working Days:</strong> <span className="font-semibold text-primary">{selectedDoctor.availableDays || 'Mon - Fri'}</span></p>
                   <p><strong>Hours:</strong> {selectedDoctor.availableTime || '09:00 AM - 05:00 PM'}</p>
                 </div>
 
@@ -354,9 +434,9 @@ const PatientBookAppointment = () => {
           <div className="p-3 bg-surface rounded-xl border border-outline-variant/40 text-[11px] text-on-surface-variant">
             <p className="flex items-center gap-1 font-semibold text-on-surface mb-1">
               <span className="material-symbols-outlined text-sm text-emerald-600">verified</span>
-              <span>Instant MySQL Confirmation</span>
+              <span>Dynamic Availability Engine</span>
             </p>
-            <p>Your booking is instantly synchronized into the attending doctor's clinical consultation queue.</p>
+            <p>Schedules and working days are matched dynamically per doctor. Unavailable dates are locked from reservation.</p>
           </div>
         </div>
       </div>
