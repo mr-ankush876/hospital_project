@@ -19,6 +19,9 @@ public class HospitalSettingDto {
     private String hospitalName;
 
     private String phone;
+    private String emergencyNumber;
+    private String ambulanceNumber;
+    private String helpCenterNumber;
     private String email;
     private String address;
     private String registrationNumber;

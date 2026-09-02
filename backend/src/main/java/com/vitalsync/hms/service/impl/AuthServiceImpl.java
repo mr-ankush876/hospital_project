@@ -38,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
 
     @Override
     @Transactional
@@ -109,7 +110,7 @@ public class AuthServiceImpl implements AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .fullName(request.getFullName())
-                .phone(request.getPhone())
+                .phone(phoneValidationService.validateAndNormalize(request.getPhone()))
                 .role("PATIENT")
                 .status("ACTIVE")
                 .lastLoginAt(LocalDateTime.now())
@@ -133,10 +134,10 @@ public class AuthServiceImpl implements AuthService {
                 .age(age)
                 .gender(request.getGender() != null ? request.getGender() : "Not Specified")
                 .bloodGroup(request.getBloodGroup() != null ? request.getBloodGroup() : "O+")
-                .phone(request.getPhone())
+                .phone(phoneValidationService.validateAndNormalize(request.getPhone()))
                 .email(request.getEmail())
                 .address(request.getAddress() != null ? request.getAddress() : "Hospital Region")
-                .emergencyContact(request.getEmergencyContact() != null ? request.getEmergencyContact() : request.getPhone())
+                .emergencyContact(request.getEmergencyContact() != null && !request.getEmergencyContact().trim().isEmpty() ? phoneValidationService.validateAndNormalize(request.getEmergencyContact()) : phoneValidationService.validateAndNormalize(request.getPhone()))
                 .medicalHistory(request.getMedicalHistory())
                 .allergies(request.getAllergies())
                 .status("Active")

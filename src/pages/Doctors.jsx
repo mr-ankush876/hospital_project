@@ -9,6 +9,7 @@ import EmptyState from '../components/common/EmptyState';
 import ErrorState from '../components/common/ErrorState';
 import { CardSkeleton } from '../components/common/Loader';
 import Pagination from '../components/common/Pagination';
+import PhoneNumberInput from '../components/common/PhoneNumberInput';
 
 const Doctors = () => {
   const { hasRole } = useAuth();
@@ -384,16 +385,11 @@ const Doctors = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                Contact Phone *
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              <PhoneNumberInput
+                label="Contact Phone"
                 required
-                placeholder="+91 98765 43210"
-                className="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary"
+                value={formData.phone}
+                onChange={(val) => setFormData({ ...formData, phone: val })}
               />
             </div>
 

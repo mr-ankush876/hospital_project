@@ -34,6 +34,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
 
     private static final List<String> VALID_STATUSES = Arrays.asList("ACTIVE", "INACTIVE", "PENDING", "SUSPENDED");
     private static final List<String> VALID_ROLES = Arrays.asList("ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT");
@@ -91,7 +92,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .fullName(request.getFullName())
-                .phone(request.getPhone())
+                .phone(phoneValidationService.validateAndNormalize(request.getPhone()))
                 .role(role)
                 .status("ACTIVE")
                 .build();
@@ -114,7 +115,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                     .department(department)
                     .fullName(request.getFullName())
                     .email(request.getEmail())
-                    .phone(request.getPhone())
+                    .phone(phoneValidationService.validateAndNormalize(request.getPhone()))
                     .specialization(request.getSpecialization() != null ? request.getSpecialization() : "General Medicine")
                     .qualification(request.getQualification() != null ? request.getQualification() : "MD / MBBS")
                     .experience(request.getExperience() != null ? request.getExperience() : "5 Years")
@@ -164,7 +165,12 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         if (updates.containsKey("phone") && updates.get("phone") != null) {
-            user.setPhone(updates.get("phone").toString().trim());
+            String rawPhone = updates.get("phone").toString().trim();
+            if (!rawPhone.isEmpty()) {
+                user.setPhone(phoneValidationService.validateAndNormalize(rawPhone));
+            } else {
+                user.setPhone(null);
+            }
         }
 
         if (updates.containsKey("role") && updates.get("role") != null) {
@@ -189,6 +195,16 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         User saved = userRepository.save(user);
+
+        // Sync linked doctor if applicable
+        if ("DOCTOR".equalsIgnoreCase(saved.getRole())) {
+            doctorRepository.findByUserId(saved.getId()).ifPresent(doc -> {
+                doc.setPhone(saved.getPhone());
+                doc.setFullName(saved.getFullName());
+                doc.setEmail(saved.getEmail());
+                doctorRepository.save(doc);
+            });
+        }
 
         auditLogService.logAction(adminUsername, "ADMIN", "UPDATE_USER_ACCOUNT", "User", saved.getId().toString(),
                 "Admin updated account details for " + saved.getUsername(), null);

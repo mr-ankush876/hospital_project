@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import StatusBadge from '../components/common/StatusBadge';
 import VitalSyncLogo from '../components/common/VitalSyncLogo';
+import PhoneNumberInput from '../components/common/PhoneNumberInput';
 
 const Settings = () => {
   const { user, hasRole, updateUserProfile } = useAuth();
@@ -16,6 +17,9 @@ const Settings = () => {
   const [hospitalForm, setHospitalForm] = useState({
     hospitalName: 'VitalSync Multi-Specialty Hospital',
     phone: '+91 (800) 123-4567',
+    emergencyNumber: '8797254899',
+    ambulanceNumber: '7888834943',
+    helpCenterNumber: '+91 (800) 123-4567',
     email: 'info@vitalsync.com',
     address: 'Medical Center Road, Healthcare City, MH 400001',
     registrationNumber: 'VS-HOSP-2026-IND',
@@ -211,14 +215,34 @@ const Settings = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Hospital Phone
-                </label>
-                <input
-                  type="tel"
+                <PhoneNumberInput
+                  label="Hospital Main Phone"
                   value={hospitalForm.phone}
-                  onChange={(e) => setHospitalForm({ ...hospitalForm, phone: e.target.value })}
-                  className="w-full bg-surface border border-outline-variant rounded-xl px-3.5 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary"
+                  onChange={(val) => setHospitalForm({ ...hospitalForm, phone: val })}
+                />
+              </div>
+
+              <div>
+                <PhoneNumberInput
+                  label="Emergency Hotline Phone"
+                  value={hospitalForm.emergencyNumber}
+                  onChange={(val) => setHospitalForm({ ...hospitalForm, emergencyNumber: val })}
+                />
+              </div>
+
+              <div>
+                <PhoneNumberInput
+                  label="Ambulance Dispatch Phone"
+                  value={hospitalForm.ambulanceNumber}
+                  onChange={(val) => setHospitalForm({ ...hospitalForm, ambulanceNumber: val })}
+                />
+              </div>
+
+              <div>
+                <PhoneNumberInput
+                  label="Help Center / Patient Support"
+                  value={hospitalForm.helpCenterNumber}
+                  onChange={(val) => setHospitalForm({ ...hospitalForm, helpCenterNumber: val })}
                 />
               </div>
 

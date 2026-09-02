@@ -113,7 +113,7 @@ public class ProductionPersistenceLifecycleTest {
         created.setPhone("+1 (555) 700-9999");
         created.setAllergies("Sulfa Drugs, Codeine");
         PatientDto updated = patientService.update(id, created);
-        assertEquals("+1 (555) 700-9999", updated.getPhone());
+        assertEquals("+15557009999", updated.getPhone());
         assertEquals("Sulfa Drugs, Codeine", updated.getAllergies());
 
         // Simulate application restart
@@ -121,7 +121,7 @@ public class ProductionPersistenceLifecycleTest {
 
         PatientDto readAfter = patientService.getById(id);
         assertNotNull(readAfter);
-        assertEquals("+1 (555) 700-9999", readAfter.getPhone(), "Updated phone must survive restart!");
+        assertEquals("+15557009999", readAfter.getPhone(), "Updated phone must survive restart!");
         assertEquals("Sulfa Drugs, Codeine", readAfter.getAllergies(), "Updated allergies must survive restart!");
     }
 

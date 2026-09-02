@@ -68,6 +68,13 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 
+		<!-- Google International Phone Number Metadata & Validation -->
+		<dependency>
+			<groupId>com.googlecode.libphonenumber</groupId>
+			<artifactId>libphonenumber</artifactId>
+			<version>8.13.33</version>
+		</dependency>
+
 		<!-- H2 Embedded Database (Dev/Test Profile) -->
 		<dependency>
 			<groupId>com.h2database</groupId>

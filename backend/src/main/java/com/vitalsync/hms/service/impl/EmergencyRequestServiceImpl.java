@@ -37,6 +37,8 @@ public class EmergencyRequestServiceImpl implements EmergencyRequestService {
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
+    private final com.vitalsync.hms.service.NotificationService notificationService;
 
     @Value("${app.emergency.hospital-number:8797254899}")
     private String defaultHospitalNumber;
@@ -88,6 +90,8 @@ public class EmergencyRequestServiceImpl implements EmergencyRequestService {
         }
         if (contactNumber == null || contactNumber.isBlank()) {
             contactNumber = defaultHospitalNumber;
+        } else if (!contactNumber.equals(defaultHospitalNumber)) {
+            contactNumber = phoneValidationService.validateAndNormalize(contactNumber);
         }
 
         String requestCode = generateSafeRequestCode();
@@ -131,6 +135,11 @@ public class EmergencyRequestServiceImpl implements EmergencyRequestService {
                 .build();
 
         EmergencyRequest saved = emergencyRequestRepository.save(request);
+
+        try {
+            notificationService.notifyEmergencyAlert(saved);
+        } catch (Exception ignored) {
+        }
 
         String usernameForAudit = currentUsername != null ? currentUsername : "anonymous_caller";
         try {

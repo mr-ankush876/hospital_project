@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { EMERGENCY_CONTACTS } from '../../config/emergencyConfig';
 import { emergencyApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import PhoneNumberInput from '../common/PhoneNumberInput';
 
 const EmergencyActionCard = ({ user = null, onRequestCreated = null, compact = false }) => {
   const { addToast } = useToast();
@@ -380,16 +381,11 @@ const EmergencyActionCard = ({ user = null, onRequestCreated = null, compact = f
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
-                Callback Phone Number <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="tel"
+              <PhoneNumberInput
+                label="Callback Phone Number"
                 required
                 value={formData.contactNumber}
-                onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
-                placeholder="e.g. 8797254899"
-                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40"
+                onChange={(val) => setFormData({ ...formData, contactNumber: val })}
               />
             </div>
 

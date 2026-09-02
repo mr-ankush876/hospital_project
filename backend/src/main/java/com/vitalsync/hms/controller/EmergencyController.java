@@ -24,6 +24,8 @@ import java.util.Map;
 public class EmergencyController {
 
     private final EmergencyRequestService emergencyRequestService;
+    private final com.vitalsync.hms.repository.HospitalSettingRepository hospitalSettingRepository;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
 
     @Value("${app.emergency.hospital-number:8797254899}")
     private String hospitalEmergencyNumber;
@@ -33,13 +35,37 @@ public class EmergencyController {
 
     @GetMapping("/contacts")
     public ResponseEntity<Map<String, String>> getEmergencyContacts() {
+        String hospNum = hospitalEmergencyNumber;
+        String ambNum = ambulanceEmergencyNumber;
+
+        var optSetting = hospitalSettingRepository.findFirstByOrderByIdAsc();
+        if (optSetting.isPresent()) {
+            var setting = optSetting.get();
+            if (setting.getEmergencyNumber() != null && !setting.getEmergencyNumber().isBlank()) {
+                hospNum = setting.getEmergencyNumber();
+            }
+            if (setting.getAmbulanceNumber() != null && !setting.getAmbulanceNumber().isBlank()) {
+                ambNum = setting.getAmbulanceNumber();
+            }
+        }
+
+        var hospParsed = phoneValidationService.parse(hospNum);
+        var ambParsed = phoneValidationService.parse(ambNum);
+
+        String hospDisplay = hospParsed.isValid() ? hospParsed.getCountryCode() + " " + hospParsed.getNationalNumber() : hospNum;
+        String ambDisplay = ambParsed.isValid() ? ambParsed.getCountryCode() + " " + ambParsed.getNationalNumber() : ambNum;
+        String hospE164 = hospParsed.isValid() ? hospParsed.getE164() : hospNum;
+        String ambE164 = ambParsed.isValid() ? ambParsed.getE164() : ambNum;
+
         Map<String, String> contacts = new HashMap<>();
-        contacts.put("hospital", hospitalEmergencyNumber);
-        contacts.put("ambulance", ambulanceEmergencyNumber);
-        contacts.put("hospitalTelUri", "tel:" + hospitalEmergencyNumber);
-        contacts.put("ambulanceTelUri", "tel:" + ambulanceEmergencyNumber);
-        contacts.put("hospitalDisplay", "+91 " + hospitalEmergencyNumber);
-        contacts.put("ambulanceDisplay", "+91 " + ambulanceEmergencyNumber);
+        contacts.put("hospital", hospNum);
+        contacts.put("ambulance", ambNum);
+        contacts.put("hospitalTelUri", "tel:" + hospNum);
+        contacts.put("ambulanceTelUri", "tel:" + ambNum);
+        contacts.put("hospitalDisplay", hospDisplay);
+        contacts.put("ambulanceDisplay", ambDisplay);
+        contacts.put("hospitalE164", hospE164);
+        contacts.put("ambulanceE164", ambE164);
         return ResponseEntity.ok(contacts);
     }
 

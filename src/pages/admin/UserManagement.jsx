@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return 'Never';
@@ -534,16 +535,11 @@ const UserManagement = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
+                  <PhoneNumberInput
+                    label="Phone Number"
                     required
                     value={staffForm.phone}
-                    onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
-                    placeholder="+1 (555) 000-0000"
-                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                    onChange={(val) => setStaffForm({ ...staffForm, phone: val })}
                   />
                 </div>
 
@@ -726,14 +722,10 @@ const UserManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
+                  <PhoneNumberInput
+                    label="Phone Number"
                     value={editForm.phone}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                    onChange={(val) => setEditForm({ ...editForm, phone: val })}
                   />
                 </div>
               </div>

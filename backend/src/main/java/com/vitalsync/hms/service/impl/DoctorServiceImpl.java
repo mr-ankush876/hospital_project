@@ -23,6 +23,7 @@ public class DoctorServiceImpl implements DoctorService {
 
     private final DoctorRepository doctorRepository;
     private final AppointmentRepository appointmentRepository;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
     private final PrescriptionRepository prescriptionRepository;
 
     @Override
@@ -120,7 +121,7 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = new Doctor();
         doctor.setFullName(dto.getFullName());
         doctor.setEmail(dto.getEmail());
-        doctor.setPhone(dto.getPhone());
+        doctor.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
         doctor.setSpecialization(dto.getSpecialization());
         doctor.setQualification(dto.getQualification());
         doctor.setExperience(dto.getExperience());
@@ -144,7 +145,7 @@ public class DoctorServiceImpl implements DoctorService {
 
         doctor.setFullName(dto.getFullName());
         doctor.setEmail(dto.getEmail());
-        doctor.setPhone(dto.getPhone());
+        doctor.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
         doctor.setSpecialization(dto.getSpecialization());
         doctor.setQualification(dto.getQualification());
         doctor.setExperience(dto.getExperience());
@@ -155,6 +156,10 @@ public class DoctorServiceImpl implements DoctorService {
         }
         doctor.setImageUrl(dto.getImageUrl());
 
+        if (doctor.getUser() != null) {
+            doctor.getUser().setPhone(doctor.getPhone());
+            doctor.getUser().setFullName(doctor.getFullName());
+        }
         Doctor updated = doctorRepository.save(doctor);
         return mapToDto(updated);
     }

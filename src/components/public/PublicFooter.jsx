@@ -1,8 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import VitalSyncLogo from '../common/VitalSyncLogo';
+import { publicApi } from '../../services/api';
 
 const PublicFooter = () => {
+  const [hospitalInfo, setHospitalInfo] = useState({
+    phone: '+91 (800) 123-4567',
+    emergencyNumber: '8797254899',
+    helpCenterNumber: '+91 (800) 123-4567',
+    email: 'care@vitalsync.com',
+    address: 'Medical Center Road, Healthcare City, MH 400001'
+  });
+
+  useEffect(() => {
+    publicApi.getHospitalInfo()
+      .then(res => {
+        if (res.data) setHospitalInfo(prev => ({ ...prev, ...res.data }));
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <footer className="bg-inverse-surface text-on-primary-fixed border-t border-outline/20 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,19 +68,23 @@ const PublicFooter = () => {
             <ul className="space-y-2.5 text-xs text-on-surface-variant">
               <li className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm text-primary">call</span>
-                <span>+91 (800) 123-4567</span>
+                <span>{hospitalInfo.phone}</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm text-rose-400">emergency</span>
-                <span className="text-rose-300 font-bold">Emergency: +91 (800) 999-911</span>
+                <span className="text-rose-300 font-bold">Emergency: {hospitalInfo.emergencyNumber || '8797254899'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm text-emerald-400">support_agent</span>
+                <span>Help Center: {hospitalInfo.helpCenterNumber || hospitalInfo.phone}</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm text-primary">mail</span>
-                <span>care@vitalsync.com</span>
+                <span>{hospitalInfo.email}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="material-symbols-outlined text-sm text-primary mt-0.5">location_on</span>
-                <span>Medical Center Road, Healthcare City, MH 400001</span>
+                <span>{hospitalInfo.address}</span>
               </li>
             </ul>
           </div>

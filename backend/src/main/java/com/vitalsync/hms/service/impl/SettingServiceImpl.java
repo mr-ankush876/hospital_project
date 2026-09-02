@@ -24,6 +24,7 @@ public class SettingServiceImpl implements SettingService {
 
     private final HospitalSettingRepository hospitalSettingRepository;
     private final UserRepository userRepository;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -44,7 +45,10 @@ public class SettingServiceImpl implements SettingService {
                 .orElseGet(HospitalSetting::new);
 
         setting.setHospitalName(dto.getHospitalName());
-        setting.setPhone(dto.getPhone());
+        setting.setPhone(dto.getPhone() != null && !dto.getPhone().trim().isEmpty() ? phoneValidationService.validateAndNormalize(dto.getPhone()) : dto.getPhone());
+        setting.setEmergencyNumber(dto.getEmergencyNumber() != null && !dto.getEmergencyNumber().trim().isEmpty() ? phoneValidationService.validateAndNormalize(dto.getEmergencyNumber()) : dto.getEmergencyNumber());
+        setting.setAmbulanceNumber(dto.getAmbulanceNumber() != null && !dto.getAmbulanceNumber().trim().isEmpty() ? phoneValidationService.validateAndNormalize(dto.getAmbulanceNumber()) : dto.getAmbulanceNumber());
+        setting.setHelpCenterNumber(dto.getHelpCenterNumber() != null && !dto.getHelpCenterNumber().trim().isEmpty() ? phoneValidationService.validateAndNormalize(dto.getHelpCenterNumber()) : dto.getHelpCenterNumber());
         setting.setEmail(dto.getEmail());
         setting.setAddress(dto.getAddress());
         setting.setRegistrationNumber(dto.getRegistrationNumber());
@@ -113,6 +117,9 @@ public class SettingServiceImpl implements SettingService {
                 .id(s.getId())
                 .hospitalName(s.getHospitalName())
                 .phone(s.getPhone())
+                .emergencyNumber(s.getEmergencyNumber())
+                .ambulanceNumber(s.getAmbulanceNumber())
+                .helpCenterNumber(s.getHelpCenterNumber())
                 .email(s.getEmail())
                 .address(s.getAddress())
                 .registrationNumber(s.getRegistrationNumber())

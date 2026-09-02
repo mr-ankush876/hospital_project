@@ -32,6 +32,7 @@ public class PatientPortalServiceImpl implements PatientPortalService {
     private final BedReservationRepository bedReservationRepository;
     private final BedService bedService;
     private final AuditLogService auditLogService;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
 
     private Patient resolveCurrentPatient(String username) {
         User user = userRepository.findByUsername(username)
@@ -116,9 +117,17 @@ public class PatientPortalServiceImpl implements PatientPortalService {
     public PatientDto updateProfile(String username, PatientDto dto) {
         Patient patient = resolveCurrentPatient(username);
 
-        if (dto.getPhone() != null) patient.setPhone(dto.getPhone());
+        if (dto.getPhone() != null && !dto.getPhone().trim().isEmpty()) {
+            String normPhone = phoneValidationService.validateAndNormalize(dto.getPhone());
+            patient.setPhone(normPhone);
+            if (patient.getUser() != null) {
+                patient.getUser().setPhone(normPhone);
+            }
+        }
         if (dto.getAddress() != null) patient.setAddress(dto.getAddress());
-        if (dto.getEmergencyContact() != null) patient.setEmergencyContact(dto.getEmergencyContact());
+        if (dto.getEmergencyContact() != null && !dto.getEmergencyContact().trim().isEmpty()) {
+            patient.setEmergencyContact(phoneValidationService.validateAndNormalize(dto.getEmergencyContact()));
+        }
         if (dto.getMedicalHistory() != null) patient.setMedicalHistory(dto.getMedicalHistory());
         if (dto.getAllergies() != null) patient.setAllergies(dto.getAllergies());
 

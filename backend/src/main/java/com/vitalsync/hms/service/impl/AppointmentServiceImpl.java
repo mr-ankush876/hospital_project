@@ -29,6 +29,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final com.vitalsync.hms.service.NotificationService notificationService;
 
     private static final List<String> VALID_STATUSES = Arrays.asList(
             "Scheduled", "Confirmed", "In Progress", "Urgent", "Completed", "Cancelled"
@@ -114,6 +115,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setAppointmentCode(String.format("APT-%04d", 3000 + count + (System.currentTimeMillis() % 9000)));
 
         Appointment saved = appointmentRepository.save(appointment);
+        try {
+            notificationService.notifyAppointmentConfirmation(saved);
+        } catch (Exception ignored) {
+        }
         return mapToDto(saved);
     }
 
@@ -175,6 +180,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         Appointment updated = appointmentRepository.save(appointment);
+        try {
+            notificationService.notifyAppointmentReschedule(updated);
+        } catch (Exception ignored) {
+        }
         return mapToDto(updated);
     }
 
@@ -190,6 +199,14 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         appointment.setStatus(status);
         Appointment updated = appointmentRepository.save(appointment);
+        try {
+            if ("Cancelled".equalsIgnoreCase(status)) {
+                notificationService.notifyAppointmentCancellation(updated, "Status updated to Cancelled");
+            } else if ("Confirmed".equalsIgnoreCase(status)) {
+                notificationService.notifyAppointmentConfirmation(updated);
+            }
+        } catch (Exception ignored) {
+        }
         return mapToDto(updated);
     }
 

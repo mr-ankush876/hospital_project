@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { patientPortalApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Loader from '../../components/common/Loader';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 
 const PatientProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -79,28 +80,20 @@ const PatientProfile = () => {
           {/* Editable Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
-                Primary Phone Number *
-              </label>
-              <input
-                type="tel"
+              <PhoneNumberInput
+                label="Primary Phone Number"
                 required
                 value={profile?.phone || ''}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                onChange={(val) => setProfile({ ...profile, phone: val })}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
-                Emergency Contact (Name & Phone) *
-              </label>
-              <input
-                type="text"
+              <PhoneNumberInput
+                label="Emergency Contact Phone"
                 required
                 value={profile?.emergencyContact || ''}
-                onChange={(e) => setProfile({ ...profile, emergencyContact: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                onChange={(val) => setProfile({ ...profile, emergencyContact: val })}
               />
             </div>
           </div>

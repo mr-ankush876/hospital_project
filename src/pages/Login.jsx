@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { authApi } from '../services/api';
 import VitalSyncLogo from '../components/common/VitalSyncLogo';
+import PhoneNumberInput from '../components/common/PhoneNumberInput';
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -357,16 +358,11 @@ const Login = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
+                    <PhoneNumberInput
+                      label="Phone Number"
                       required
                       value={regForm.phone}
-                      onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                      placeholder="+1 (555) 000-0000"
-                      className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                      onChange={(val) => setRegForm({ ...regForm, phone: val })}
                     />
                   </div>
                 </div>

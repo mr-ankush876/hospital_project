@@ -36,6 +36,7 @@ public class DoctorPortalServiceImpl implements DoctorPortalService {
     private final AppointmentRepository appointmentRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final AuditLogService auditLogService;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
 
     private Doctor resolveCurrentDoctor(String username) {
         User user = userRepository.findByUsername(username)
@@ -134,7 +135,13 @@ public class DoctorPortalServiceImpl implements DoctorPortalService {
     public DoctorDto updateMyProfile(String username, DoctorDto dto) {
         Doctor doctor = resolveCurrentDoctor(username);
 
-        if (dto.getPhone() != null) doctor.setPhone(dto.getPhone());
+                if (dto.getPhone() != null && !dto.getPhone().trim().isEmpty()) {
+            String norm = phoneValidationService.validateAndNormalize(dto.getPhone());
+            doctor.setPhone(norm);
+            if (doctor.getUser() != null) {
+                doctor.getUser().setPhone(norm);
+            }
+        }
         if (dto.getExperience() != null) doctor.setExperience(dto.getExperience());
         if (dto.getAvailableDays() != null) doctor.setAvailableDays(dto.getAvailableDays());
         if (dto.getAvailableTime() != null) doctor.setAvailableTime(dto.getAvailableTime());

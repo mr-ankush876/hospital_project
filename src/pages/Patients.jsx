@@ -9,6 +9,7 @@ import EmptyState from '../components/common/EmptyState';
 import ErrorState from '../components/common/ErrorState';
 import { TableSkeleton } from '../components/common/Loader';
 import Pagination from '../components/common/Pagination';
+import PhoneNumberInput from '../components/common/PhoneNumberInput';
 
 const Patients = () => {
   const { hasRole } = useAuth();
@@ -426,16 +427,11 @@ const Patients = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              <PhoneNumberInput
+                label="Phone Number"
                 required
-                placeholder="+91 98765 43210"
-                className="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary"
+                value={formData.phone}
+                onChange={(val) => setFormData({ ...formData, phone: val })}
               />
             </div>
 
@@ -466,15 +462,10 @@ const Patients = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                Emergency Contact
-              </label>
-              <input
-                type="text"
+              <PhoneNumberInput
+                label="Emergency Contact Phone"
                 value={formData.emergencyContact}
-                onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                placeholder="Name & Contact (e.g. Spouse +91 98765)"
-                className="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary"
+                onChange={(val) => setFormData({ ...formData, emergencyContact: val })}
               />
             </div>
 

@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
+    private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
     private final AppointmentRepository appointmentRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final BillRepository billRepository;
@@ -76,10 +77,14 @@ public class PatientServiceImpl implements PatientService {
 
         patient.setGender(dto.getGender());
         patient.setBloodGroup(dto.getBloodGroup());
-        patient.setPhone(dto.getPhone());
+        patient.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
         patient.setEmail(dto.getEmail());
         patient.setAddress(dto.getAddress());
-        patient.setEmergencyContact(dto.getEmergencyContact());
+                if (dto.getEmergencyContact() != null && !dto.getEmergencyContact().trim().isEmpty()) {
+            patient.setEmergencyContact(phoneValidationService.validateAndNormalize(dto.getEmergencyContact()));
+        } else {
+            patient.setEmergencyContact(null);
+        }
         patient.setMedicalHistory(dto.getMedicalHistory());
         patient.setAllergies(dto.getAllergies());
         patient.setStatus(dto.getStatus() != null ? dto.getStatus() : "Active");
@@ -108,10 +113,14 @@ public class PatientServiceImpl implements PatientService {
 
         patient.setGender(dto.getGender());
         patient.setBloodGroup(dto.getBloodGroup());
-        patient.setPhone(dto.getPhone());
+        patient.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
         patient.setEmail(dto.getEmail());
         patient.setAddress(dto.getAddress());
-        patient.setEmergencyContact(dto.getEmergencyContact());
+                if (dto.getEmergencyContact() != null && !dto.getEmergencyContact().trim().isEmpty()) {
+            patient.setEmergencyContact(phoneValidationService.validateAndNormalize(dto.getEmergencyContact()));
+        } else {
+            patient.setEmergencyContact(null);
+        }
         patient.setMedicalHistory(dto.getMedicalHistory());
         patient.setAllergies(dto.getAllergies());
         if (dto.getStatus() != null) {
@@ -119,6 +128,10 @@ public class PatientServiceImpl implements PatientService {
         }
         patient.setUpdatedAt(LocalDateTime.now());
 
+        if (patient.getUser() != null) {
+            patient.getUser().setPhone(patient.getPhone());
+            patient.getUser().setFullName(patient.getFullName());
+        }
         Patient updated = patientRepository.save(patient);
         return mapToDto(updated);
     }

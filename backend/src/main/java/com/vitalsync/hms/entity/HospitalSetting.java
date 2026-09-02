@@ -20,8 +20,17 @@ public class HospitalSetting {
     @Column(name = "hospital_name", nullable = false, length = 150)
     private String hospitalName = "VitalSync Multi-Specialty Hospital";
 
-    @Column(length = 20)
+    @Column(length = 30)
     private String phone = "+91 (800) 123-4567";
+
+    @Column(name = "emergency_number", length = 30)
+    private String emergencyNumber = "8797254899";
+
+    @Column(name = "ambulance_number", length = 30)
+    private String ambulanceNumber = "7888834943";
+
+    @Column(name = "help_center_number", length = 30)
+    private String helpCenterNumber = "+91 (800) 123-4567";
 
     @Column(length = 100)
     private String email = "info@vitalsync.com";
