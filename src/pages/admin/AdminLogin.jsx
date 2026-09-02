@@ -129,6 +129,26 @@ const AdminLogin = () => {
             </p>
           </div>
 
+          {/* Quick Credential Helper */}
+          <div className="bg-surface-container-low border border-outline-variant/60 rounded-xl p-3 mb-5 flex items-center justify-between">
+            <div className="text-xs">
+              <span className="text-on-surface-variant font-medium">Default: </span>
+              <span className="font-mono font-bold text-primary">ankush_876</span>
+              <span className="text-outline mx-1">/</span>
+              <span className="font-mono font-bold text-primary">Ankush143@</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('ankush_876');
+                setPassword('Ankush143@');
+              }}
+              className="text-[11px] font-bold px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary rounded-lg transition-colors cursor-pointer"
+            >
+              Auto-Fill
+            </button>
+          </div>
+
           <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
