@@ -53,23 +53,29 @@ public class DataInitializer implements CommandLineRunner {
         // 1. Ensure master administrator account exists (idempotent, never overwrites customized password/data)
         ensureAdminUser();
 
-        // 2. Ensure core hospital departments exist (static clinical structure)
+        // 2. Ensure core hospital infrastructure exists (static clinical structure)
         if (departmentRepository.count() == 0) {
             seedDepartments();
         }
+        if (hospitalSettingRepository.count() == 0) {
+            seedHospitalSettings();
+        }
+        if (doctorRepository.count() == 0) {
+            seedDoctors();
+        }
+        if (bedRepository.count() == 0) {
+            seedBeds();
+        }
 
-        // 3. Demo seed data guard: NEVER seed demo business data in production (strictly false by default)
+        // 3. Demo transaction data guard: NEVER seed demo business transactions in production (strictly false by default)
         if (seedDataEnabled) {
             log.info("Demo data seeding is ENABLED (app.seed-data.enabled=true). Running idempotent demo data initialization...");
             seedUsers();
-            seedDoctors();
             seedPatients();
-            seedBeds();
             seedAppointments();
             seedPrescriptions();
             seedMedicalReports();
             seedBills();
-            seedHospitalSettings();
             seedAuditLogs();
             log.info("Idempotent demo data seeding completed successfully.");
         } else {
