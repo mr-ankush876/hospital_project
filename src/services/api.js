@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // In development (Vite dev server), use '/api' which is proxied to localhost:8080.
 // In production (Vercel), use the full Render backend URL.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD ? 'https://vitalsync-hms-backend.onrender.com/api' : '/api');
 
 const api = axios.create({
