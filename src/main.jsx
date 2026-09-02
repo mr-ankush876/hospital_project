@@ -26,6 +26,8 @@ import PatientReports from './pages/patient/PatientReports';
 import PatientBedReservations from './pages/patient/PatientBedReservations';
 import PatientBilling from './pages/patient/PatientBilling';
 import PatientProfile from './pages/patient/PatientProfile';
+import PatientEmergency from './pages/patient/PatientEmergency';
+import EmergencyManagement from './pages/admin/EmergencyManagement';
 
 // Doctor Portal Pages
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -94,6 +96,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/public-departments" element={<PublicDepartments />} />
             <Route path="/public-beds" element={<PublicBeds />} />
             <Route path="/services" element={<PublicServices />} />
+            <Route path="/emergency" element={<PublicEmergency />} />
+            <Route path="/public-emergency" element={<PublicEmergency />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin-login" element={<AdminLogin />} />
@@ -164,6 +168,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               element={
                 <ProtectedRoute allowedRoles={['PATIENT']}>
                   <Layout><PatientProfile /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patient/emergency"
+              element={
+                <ProtectedRoute allowedRoles={['PATIENT']}>
+                  <Layout><PatientEmergency /></Layout>
                 </ProtectedRoute>
               }
             />
@@ -306,6 +318,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <Layout><AuditLogs /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/emergencies"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'DOCTOR', 'RECEPTIONIST']}>
+                  <Layout><EmergencyManagement /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/emergencies"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'DOCTOR', 'RECEPTIONIST']}>
+                  <Layout><EmergencyManagement /></Layout>
                 </ProtectedRoute>
               }
             />

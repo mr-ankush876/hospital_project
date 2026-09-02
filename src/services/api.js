@@ -219,5 +219,18 @@ export const searchApi = {
   searchBills: (query) => api.get('/bills/search', { params: { query } }),
 };
 
+// 18. Emergency Services Endpoints
+export const emergencyApi = {
+  getContacts: () => api.get('/emergencies/contacts'),
+  create: (data) => api.post('/emergencies', data),
+  recordHospitalCall: (id) => api.post(`/emergencies/${id}/call/hospital`),
+  recordAmbulanceCall: (id) => api.post(`/emergencies/${id}/call/ambulance`),
+  getAll: (params) => api.get('/emergencies', { params }),
+  getStats: () => api.get('/emergencies/stats'),
+  getMy: () => api.get('/emergencies/my'),
+  getById: (id) => api.get(`/emergencies/${id}`),
+  updateStatus: (id, data) => api.patch(`/emergencies/${id}/status`, data),
+};
+
 export default api;
 

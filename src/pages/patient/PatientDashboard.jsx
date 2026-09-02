@@ -5,6 +5,7 @@ import { patientPortalApi } from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
 import ErrorState from '../../components/common/ErrorState';
+import { EMERGENCY_CONTACTS } from '../../config/emergencyConfig';
 
 const PatientDashboard = () => {
   const { user } = useAuth();
@@ -72,6 +73,51 @@ const PatientDashboard = () => {
           >
             <span className="material-symbols-outlined text-lg text-primary">hotel</span>
             <span>Bed Request</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 24/7 Priority Emergency Banner */}
+      <div className="bg-rose-500/10 border-2 border-rose-500/30 rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <span className="material-symbols-outlined text-2xl animate-pulse">emergency</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                24/7 Immediate Medical Emergency
+              </span>
+              <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+            </div>
+            <p className="text-xs text-on-surface-variant mt-0.5">
+              Need urgent clinical care or ambulance dispatch? Connect directly to on-duty responders.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          <a
+            href={EMERGENCY_CONTACTS.hospitalTelUri}
+            className="flex-1 md:flex-initial bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5"
+            aria-label={`Call Hospital Emergency at ${EMERGENCY_CONTACTS.hospital}`}
+          >
+            <span className="material-symbols-outlined text-base">call</span>
+            <span>Hospital: {EMERGENCY_CONTACTS.hospital}</span>
+          </a>
+          <a
+            href={EMERGENCY_CONTACTS.ambulanceTelUri}
+            className="flex-1 md:flex-initial bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5"
+            aria-label={`Call Ambulance at ${EMERGENCY_CONTACTS.ambulance}`}
+          >
+            <span className="material-symbols-outlined text-base">ambulance</span>
+            <span>Ambulance: {EMERGENCY_CONTACTS.ambulance}</span>
+          </a>
+          <Link
+            to="/patient/emergency"
+            className="w-full sm:w-auto text-center bg-surface-container-lowest border border-outline-variant hover:border-rose-400 text-on-surface font-semibold text-xs px-3.5 py-2.5 rounded-xl transition-colors shadow-xs"
+          >
+            Emergency Hub
           </Link>
         </div>
       </div>

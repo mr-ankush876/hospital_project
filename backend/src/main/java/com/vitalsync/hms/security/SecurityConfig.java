@@ -62,6 +62,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/search/**").permitAll()
                         .requestMatchers("/api/doctors/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/departments/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/emergencies/contacts").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/emergencies").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
 
                         // Auth session endpoints

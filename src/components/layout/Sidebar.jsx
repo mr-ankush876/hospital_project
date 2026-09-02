@@ -19,6 +19,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     if (user.role === 'PATIENT') {
       return [
         { label: 'Patient Dashboard', icon: 'dashboard', path: '/patient/dashboard' },
+        { label: 'Emergency 24/7', icon: 'emergency', path: '/patient/emergency', highlight: true },
         { label: 'Book Appointment', icon: 'add_circle', path: '/patient/book-appointment' },
         { label: 'My Appointments', icon: 'event_available', path: '/patient/appointments' },
         { label: 'My Prescriptions', icon: 'prescriptions', path: '/patient/prescriptions' },
@@ -32,6 +33,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     if (user.role === 'DOCTOR') {
       return [
         { label: 'Doctor Dashboard', icon: 'dashboard', path: '/doctor/dashboard' },
+        { label: 'Emergency Desk', icon: 'emergency', path: '/admin/emergencies', highlight: true },
         { label: 'My Consultations', icon: 'event_available', path: '/doctor/appointments' },
         { label: 'Clinical Patients', icon: 'group', path: '/doctor/patients' },
         { label: 'Prescriptions', icon: 'prescriptions', path: '/prescriptions' },
@@ -43,6 +45,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     if (user.role === 'RECEPTIONIST') {
       return [
         { label: 'Reception Dashboard', icon: 'dashboard', path: '/dashboard' },
+        { label: 'Emergency Desk', icon: 'emergency', path: '/admin/emergencies', highlight: true },
         { label: 'Patients Desk', icon: 'group', path: '/patients' },
         { label: 'Appointments', icon: 'event_available', path: '/appointments' },
         { label: 'Beds & ICU Allocation', icon: 'hotel', path: '/admin/beds' },
@@ -53,6 +56,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     // Default: ADMIN
     return [
       { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
+      { label: 'Emergency Desk', icon: 'emergency', path: '/admin/emergencies', highlight: true },
       { label: 'User & Accounts', icon: 'manage_accounts', path: '/admin/users' },
       { label: 'Patients', icon: 'group', path: '/patients' },
       { label: 'Doctors', icon: 'medical_services', path: '/doctors' },
@@ -126,15 +130,26 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
               to={item.path}
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
+                `flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
                   isActive
-                    ? 'bg-primary text-white shadow-sm border-l-4 border-primary-fixed-dim'
+                    ? item.highlight
+                      ? 'bg-rose-600 text-white shadow-sm font-bold'
+                      : 'bg-primary text-white shadow-sm border-l-4 border-primary-fixed-dim'
+                    : item.highlight
+                    ? 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/30'
                     : 'text-outline-variant hover:text-white hover:bg-white/5'
                 }`
               }
             >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              <span className="truncate">{item.label}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className={`material-symbols-outlined text-[20px] ${item.highlight ? 'text-rose-400' : ''}`}>{item.icon}</span>
+                <span className="truncate">{item.label}</span>
+              </div>
+              {item.highlight && (
+                <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-rose-600 text-white shrink-0">
+                  24/7
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
