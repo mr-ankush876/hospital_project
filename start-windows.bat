@@ -79,13 +79,13 @@ echo =========================================================================
 echo  [SUCCESS] Both Backend and Frontend servers are starting up!
 echo =========================================================================
 echo.
-echo  Backend:   http://localhost:8080  (Spring Boot REST API + H2 DB)
+echo  Backend:   http://localhost:8080  (Spring Boot REST API)
 echo  Frontend:  http://localhost:5173  (React Web UI)
-echo  H2 DB:     http://localhost:8080/h2-console  (JDBC: jdbc:h2:mem:vitalsyncdb)
+echo  H2 Console: http://localhost:8080/h2-console  (Dev Profile)
 echo.
 echo  Default Login Credentials:
 echo  -------------------------------------------------------------
-echo  * ADMIN:        admin        / password123
+echo  * ADMIN:        ankush_876   / Ankush143@
 echo  * DOCTOR:       dr.chen      / password123
 echo  * RECEPTIONIST: receptionist / password123
 echo  -------------------------------------------------------------

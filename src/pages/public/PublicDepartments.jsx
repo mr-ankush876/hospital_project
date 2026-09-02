@@ -5,15 +5,19 @@ import PublicFooter from '../../components/public/PublicFooter';
 import { publicApi } from '../../services/api';
 import Loader from '../../components/common/Loader';
 
+import { FALLBACK_DEPARTMENTS } from '../../config/hospitalFallbackData';
+
 const PublicDepartments = () => {
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [departments, setDepartments] = useState(FALLBACK_DEPARTMENTS);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
         const res = await publicApi.getDepartments();
-        setDepartments(res.data || []);
+        if (Array.isArray(res?.data) && res.data.length > 0) {
+          setDepartments(res.data);
+        }
       } catch (err) {
         console.error('Error fetching departments:', err);
       } finally {

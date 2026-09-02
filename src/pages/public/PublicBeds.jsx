@@ -5,22 +5,27 @@ import PublicFooter from '../../components/public/PublicFooter';
 import { publicApi } from '../../services/api';
 import Loader from '../../components/common/Loader';
 
+import { FALLBACK_BED_STATS, FALLBACK_DEPARTMENTS } from '../../config/hospitalFallbackData';
+
 const PublicBeds = () => {
-  const [bedStats, setBedStats] = useState(null);
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [bedStats, setBedStats] = useState(FALLBACK_BED_STATS);
+  const [departments, setDepartments] = useState(FALLBACK_DEPARTMENTS);
+  const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
   const fetchBedData = async () => {
-    setLoading(true);
     try {
       const [bRes, depRes] = await Promise.allSettled([
         publicApi.getBedAvailability(),
         publicApi.getDepartments(),
       ]);
 
-      if (bRes.status === 'fulfilled') setBedStats(bRes.value.data);
-      if (depRes.status === 'fulfilled') setDepartments(depRes.value.data || []);
+      if (bRes.status === 'fulfilled' && bRes.value?.data && bRes.value.data.totalBeds > 0) {
+        setBedStats(bRes.value.data);
+      }
+      if (depRes.status === 'fulfilled' && Array.isArray(depRes.value?.data) && depRes.value.data.length > 0) {
+        setDepartments(depRes.value.data);
+      }
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching bed availability:', err);

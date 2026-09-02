@@ -27,8 +27,13 @@ if exist "%USERPROFILE%\.tools\jdk-17*\bin\java.exe" (
 )
 
 echo [*] Starting Spring Boot on http://localhost:8080 (MySQL Profile) ...
-call mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=mysql
+call mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=mysql"
 if %errorlevel% neq 0 (
-    echo [ERROR] Backend failed to start.
-    pause
+    echo.
+    echo [INFO] Attempting fallback to dev profile (Embedded H2 DB)...
+    call mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+    if %errorlevel% neq 0 (
+        echo [ERROR] Backend failed to start.
+        pause
+    )
 )

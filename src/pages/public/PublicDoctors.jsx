@@ -6,9 +6,11 @@ import { publicApi } from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
 
+import { FALLBACK_DOCTORS } from '../../config/hospitalFallbackData';
+
 const PublicDoctors = () => {
-  const [doctors, setDoctors] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [doctors, setDoctors] = useState(FALLBACK_DOCTORS);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('ALL');
 
@@ -16,7 +18,9 @@ const PublicDoctors = () => {
     const fetchDoctors = async () => {
       try {
         const res = await publicApi.getDoctors();
-        setDoctors(res.data || []);
+        if (Array.isArray(res?.data) && res.data.length > 0) {
+          setDoctors(res.data);
+        }
       } catch (err) {
         console.error('Error fetching public doctors:', err);
       } finally {

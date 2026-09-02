@@ -5,12 +5,19 @@ import PublicFooter from '../../components/public/PublicFooter';
 import { publicApi } from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
 
+import {
+  FALLBACK_DOCTORS,
+  FALLBACK_DEPARTMENTS,
+  FALLBACK_BED_STATS,
+  FALLBACK_HOSPITAL_INFO,
+} from '../../config/hospitalFallbackData';
+
 const PublicHome = () => {
-  const [doctors, setDoctors] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [bedStats, setBedStats] = useState(null);
-  const [hospitalInfo, setHospitalInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [doctors, setDoctors] = useState(FALLBACK_DOCTORS);
+  const [departments, setDepartments] = useState(FALLBACK_DEPARTMENTS);
+  const [bedStats, setBedStats] = useState(FALLBACK_BED_STATS);
+  const [hospitalInfo, setHospitalInfo] = useState(FALLBACK_HOSPITAL_INFO);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,10 +29,18 @@ const PublicHome = () => {
           publicApi.getHospitalInfo(),
         ]);
 
-        if (dRes.status === 'fulfilled') setDoctors(dRes.value.data || []);
-        if (depRes.status === 'fulfilled') setDepartments(depRes.value.data || []);
-        if (bRes.status === 'fulfilled') setBedStats(bRes.value.data || null);
-        if (hRes.status === 'fulfilled') setHospitalInfo(hRes.value.data || null);
+        if (dRes.status === 'fulfilled' && Array.isArray(dRes.value?.data) && dRes.value.data.length > 0) {
+          setDoctors(dRes.value.data);
+        }
+        if (depRes.status === 'fulfilled' && Array.isArray(depRes.value?.data) && depRes.value.data.length > 0) {
+          setDepartments(depRes.value.data);
+        }
+        if (bRes.status === 'fulfilled' && bRes.value?.data && bRes.value.data.totalBeds > 0) {
+          setBedStats(bRes.value.data);
+        }
+        if (hRes.status === 'fulfilled' && hRes.value?.data) {
+          setHospitalInfo(hRes.value.data);
+        }
       } catch (err) {
         console.error('Error fetching public hospital data:', err);
       } finally {
