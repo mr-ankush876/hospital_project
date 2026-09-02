@@ -5,6 +5,7 @@ import com.vitalsync.hms.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -37,21 +38,29 @@ public class DataInitializer implements CommandLineRunner {
     private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @org.springframework.beans.factory.annotation.Value("${app.admin.username:admin}")
+    @Value("${app.seed-data.enabled:false}")
+    private boolean seedDataEnabled;
+
+    @Value("${app.admin.username:ankush_876}")
     private String adminUsername;
 
-    @org.springframework.beans.factory.annotation.Value("${app.admin.password:Admin@2026}")
+    @Value("${app.admin.password:Ankush143@}")
     private String adminPassword;
 
     @Override
     @Transactional
     public void run(String... args) {
+        // 1. Ensure master administrator account exists (idempotent, never overwrites customized password/data)
+        ensureAdminUser();
+
+        // 2. Ensure core hospital departments exist (static clinical structure)
         if (departmentRepository.count() == 0) {
             seedDepartments();
         }
 
-        if (userRepository.count() == 0) {
-            log.info("Empty database detected. Seeding initial users and data...");
+        // 3. Demo seed data guard: NEVER seed demo business data in production (strictly false by default)
+        if (seedDataEnabled) {
+            log.info("Demo data seeding is ENABLED (app.seed-data.enabled=true). Running idempotent demo data initialization...");
             seedUsers();
             seedDoctors();
             seedPatients();
@@ -62,34 +71,18 @@ public class DataInitializer implements CommandLineRunner {
             seedBills();
             seedHospitalSettings();
             seedAuditLogs();
-            log.info("Database seeding completed successfully!");
+            log.info("Idempotent demo data seeding completed successfully.");
         } else {
-            // Ensure admin credentials always match configuration
-            ensureAdminUser();
-
-            // If departments or beds are missing in existing DB, initialize them
-            if (bedRepository.count() == 0) {
-                seedBeds();
-            }
-            if (medicalReportRepository.count() == 0) {
-                seedMedicalReports();
-            }
+            log.info("Production Persistence Mode Active: Demo data seeding is DISABLED (app.seed-data.enabled=false). MySQL is the single source of truth.");
         }
     }
 
     private void ensureAdminUser() {
-        // Ensure primary admin user (e.g. ankush_876) exists and has correct credentials
         Optional<User> primaryAdmin = userRepository.findByUsername(adminUsername);
         if (primaryAdmin.isPresent()) {
-            User admin = primaryAdmin.get();
-            admin.setPassword(passwordEncoder.encode(adminPassword));
-            admin.setFullName("Dr. Ankush singh (Administrator)");
-            admin.setEmail("ankush@vitalsync.com");
-            admin.setPhone("+91 8797254899");
-            admin.setStatus("ACTIVE");
-            admin.setRole("ADMIN");
-            userRepository.save(admin);
-            log.info("Administrator account synchronized: username='{}', name='{}'", adminUsername, admin.getFullName());
+            // Do NOT overwrite an administrator's manually modified password, name, phone, or email on restart
+            log.info("Administrator account verified: username='{}', name='{}', role='{}'",
+                    adminUsername, primaryAdmin.get().getFullName(), primaryAdmin.get().getRole());
         } else {
             User admin = User.builder()
                     .username(adminUsername)
@@ -101,13 +94,9 @@ public class DataInitializer implements CommandLineRunner {
                     .status("ACTIVE")
                     .build();
             userRepository.save(admin);
-            log.info("Administrator account created with username='{}'", adminUsername);
+            log.info("Master administrator account initialized with username='{}'", adminUsername);
         }
-
-        // Clean up legacy fallback 'admin' if custom adminUsername is configured
-        if (!"admin".equalsIgnoreCase(adminUsername)) {
-            userRepository.findByUsername("admin").ifPresent(userRepository::delete);
-        }
+        // Never delete any user accounts during startup
     }
 
     private void seedDepartments() {
@@ -127,103 +116,49 @@ public class DataInitializer implements CommandLineRunner {
         };
 
         for (String[] d : depts) {
-            Department dept = Department.builder()
-                    .departmentCode(d[0])
-                    .name(d[1])
-                    .description(d[2])
-                    .headDoctorName(d[3])
-                    .totalBeds(Integer.parseInt(d[4]))
-                    .availableBeds(Integer.parseInt(d[4]))
-                    .occupiedBeds(0)
-                    .status("Active")
-                    .build();
-            departmentRepository.save(dept);
+            if (departmentRepository.findByDepartmentCode(d[0]).isEmpty()) {
+                Department dept = Department.builder()
+                        .departmentCode(d[0])
+                        .name(d[1])
+                        .description(d[2])
+                        .headDoctorName(d[3])
+                        .totalBeds(Integer.parseInt(d[4]))
+                        .availableBeds(Integer.parseInt(d[4]))
+                        .occupiedBeds(0)
+                        .status("Active")
+                        .build();
+                departmentRepository.save(dept);
+            }
         }
-        log.info("Seeded 12 hospital departments");
+        log.info("Initialized hospital departments");
     }
 
     private void seedUsers() {
         String encodedPassword = passwordEncoder.encode("password123");
 
-        User admin = User.builder()
-                .username(adminUsername)
-                .password(passwordEncoder.encode(adminPassword))
-                .email("ankush@vitalsync.com")
-                .fullName("Dr. Ankush singh (Administrator)")
-                .phone("+91 8797254899")
-                .role("ADMIN")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(admin);
+        saveUserIfMissing("dr.chen", encodedPassword, "r.chen@vitalsync.com", "Dr. Robert Chen", "+1 (555) 123-4567", "DOCTOR");
+        saveUserIfMissing("dr.stanton", encodedPassword, "e.stanton@vitalsync.com", "Dr. Emily Stanton", "+1 (555) 987-6543", "DOCTOR");
+        saveUserIfMissing("dr.vance", encodedPassword, "m.vance@vitalsync.com", "Dr. Marcus Vance", "+1 (555) 456-7890", "DOCTOR");
+        saveUserIfMissing("receptionist", encodedPassword, "reception@vitalsync.com", "Alex Vance", "+1 (555) 111-2233", "RECEPTIONIST");
+        saveUserIfMissing("patient.michael", encodedPassword, "michael.chang@email.com", "Michael Chang", "+1 (555) 123-4567", "PATIENT");
+        saveUserIfMissing("patient.sarah", encodedPassword, "sarah.j@email.com", "Sarah Jenkins", "+1 (555) 987-6543", "PATIENT");
 
-        User drChen = User.builder()
-                .username("dr.chen")
-                .password(encodedPassword)
-                .email("r.chen@vitalsync.com")
-                .fullName("Dr. Robert Chen")
-                .phone("+1 (555) 123-4567")
-                .role("DOCTOR")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(drChen);
+        log.info("Seeded demo user accounts idempotently");
+    }
 
-        User drStanton = User.builder()
-                .username("dr.stanton")
-                .password(encodedPassword)
-                .email("e.stanton@vitalsync.com")
-                .fullName("Dr. Emily Stanton")
-                .phone("+1 (555) 987-6543")
-                .role("DOCTOR")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(drStanton);
-
-        User drVance = User.builder()
-                .username("dr.vance")
-                .password(encodedPassword)
-                .email("m.vance@vitalsync.com")
-                .fullName("Dr. Marcus Vance")
-                .phone("+1 (555) 456-7890")
-                .role("DOCTOR")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(drVance);
-
-        User receptionist = User.builder()
-                .username("receptionist")
-                .password(encodedPassword)
-                .email("reception@vitalsync.com")
-                .fullName("Alex Vance")
-                .phone("+1 (555) 111-2233")
-                .role("RECEPTIONIST")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(receptionist);
-
-        // Seed patient accounts
-        User pUser1 = User.builder()
-                .username("patient.michael")
-                .password(encodedPassword)
-                .email("michael.chang@email.com")
-                .fullName("Michael Chang")
-                .phone("+1 (555) 123-4567")
-                .role("PATIENT")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(pUser1);
-
-        User pUser2 = User.builder()
-                .username("patient.sarah")
-                .password(encodedPassword)
-                .email("sarah.j@email.com")
-                .fullName("Sarah Jenkins")
-                .phone("+1 (555) 987-6543")
-                .role("PATIENT")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(pUser2);
-
-        log.info("Seeded central user accounts with BCrypt passwords");
+    private void saveUserIfMissing(String username, String password, String email, String fullName, String phone, String role) {
+        if (!userRepository.existsByUsername(username) && !userRepository.existsByEmail(email)) {
+            User user = User.builder()
+                    .username(username)
+                    .password(password)
+                    .email(email)
+                    .fullName(fullName)
+                    .phone(phone)
+                    .role(role)
+                    .status("ACTIVE")
+                    .build();
+            userRepository.save(user);
+        }
     }
 
     private void seedDoctors() {
@@ -237,79 +172,87 @@ public class DataInitializer implements CommandLineRunner {
         User drVanceUser = userRepository.findByUsername("dr.vance").orElse(null);
         User adminUser = userRepository.findByUsername(adminUsername).orElse(null);
 
-        Doctor d1 = Doctor.builder()
-                .doctorCode("DOC-2001")
-                .user(drChenUser)
-                .department(cardio)
-                .fullName("Dr. Robert Chen")
-                .email("r.chen@vitalsync.com")
-                .phone("+1 (555) 123-4567")
-                .specialization("Cardiology")
-                .qualification("MD, FACC, Board Certified Cardiologist")
-                .experience("15 Years")
-                .availableDays("Mon, Wed, Fri")
-                .availableTime("09:00 AM - 05:00 PM")
-                .consultationFee(new BigDecimal("150.00"))
-                .status("Available")
-                .imageUrl("https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&h=300&fit=crop&crop=face")
-                .build();
-        doctorRepository.save(d1);
+        if (doctorRepository.findByDoctorCode("DOC-2001").isEmpty()) {
+            Doctor d1 = Doctor.builder()
+                    .doctorCode("DOC-2001")
+                    .user(drChenUser)
+                    .department(cardio)
+                    .fullName("Dr. Robert Chen")
+                    .email("r.chen@vitalsync.com")
+                    .phone("+1 (555) 123-4567")
+                    .specialization("Cardiology")
+                    .qualification("MD, FACC, Board Certified Cardiologist")
+                    .experience("15 Years")
+                    .availableDays("Mon, Wed, Fri")
+                    .availableTime("09:00 AM - 05:00 PM")
+                    .consultationFee(new BigDecimal("150.00"))
+                    .status("Available")
+                    .imageUrl("https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&h=300&fit=crop&crop=face")
+                    .build();
+            doctorRepository.save(d1);
+        }
 
-        Doctor d2 = Doctor.builder()
-                .doctorCode("DOC-2002")
-                .user(drStantonUser)
-                .department(peds)
-                .fullName("Dr. Emily Stanton")
-                .email("e.stanton@vitalsync.com")
-                .phone("+1 (555) 987-6543")
-                .specialization("Pediatrics")
-                .qualification("MD, FAAP, Pediatric Critical Care Specialist")
-                .experience("10 Years")
-                .availableDays("Tue, Thu, Sat")
-                .availableTime("08:00 AM - 04:00 PM")
-                .consultationFee(new BigDecimal("120.00"))
-                .status("Available")
-                .imageUrl("https://images.unsplash.com/photo-1594824813589-3221b66b4033?w=300&h=300&fit=crop&crop=face")
-                .build();
-        doctorRepository.save(d2);
+        if (doctorRepository.findByDoctorCode("DOC-2002").isEmpty()) {
+            Doctor d2 = Doctor.builder()
+                    .doctorCode("DOC-2002")
+                    .user(drStantonUser)
+                    .department(peds)
+                    .fullName("Dr. Emily Stanton")
+                    .email("e.stanton@vitalsync.com")
+                    .phone("+1 (555) 987-6543")
+                    .specialization("Pediatrics")
+                    .qualification("MD, FAAP, Pediatric Critical Care Specialist")
+                    .experience("10 Years")
+                    .availableDays("Tue, Thu, Sat")
+                    .availableTime("08:00 AM - 04:00 PM")
+                    .consultationFee(new BigDecimal("120.00"))
+                    .status("Available")
+                    .imageUrl("https://images.unsplash.com/photo-1594824813589-3221b66b4033?w=300&h=300&fit=crop&crop=face")
+                    .build();
+            doctorRepository.save(d2);
+        }
 
-        Doctor d3 = Doctor.builder()
-                .doctorCode("DOC-2003")
-                .user(drVanceUser)
-                .department(neuro)
-                .fullName("Dr. Marcus Vance")
-                .email("m.vance@vitalsync.com")
-                .phone("+1 (555) 456-7890")
-                .specialization("Neurology")
-                .qualification("MD, PhD, Neuro-Oncology Fellow")
-                .experience("18 Years")
-                .availableDays("Mon - Fri")
-                .availableTime("10:00 AM - 06:00 PM")
-                .consultationFee(new BigDecimal("200.00"))
-                .status("In Surgery")
-                .imageUrl("https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&h=300&fit=crop&crop=face")
-                .build();
-        doctorRepository.save(d3);
+        if (doctorRepository.findByDoctorCode("DOC-2003").isEmpty()) {
+            Doctor d3 = Doctor.builder()
+                    .doctorCode("DOC-2003")
+                    .user(drVanceUser)
+                    .department(neuro)
+                    .fullName("Dr. Marcus Vance")
+                    .email("m.vance@vitalsync.com")
+                    .phone("+1 (555) 456-7890")
+                    .specialization("Neurology")
+                    .qualification("MD, PhD, Neuro-Oncology Fellow")
+                    .experience("18 Years")
+                    .availableDays("Mon - Fri")
+                    .availableTime("10:00 AM - 06:00 PM")
+                    .consultationFee(new BigDecimal("200.00"))
+                    .status("In Surgery")
+                    .imageUrl("https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&h=300&fit=crop&crop=face")
+                    .build();
+            doctorRepository.save(d3);
+        }
 
-        Doctor d4 = Doctor.builder()
-                .doctorCode("DOC-2004")
-                .user(adminUser)
-                .department(genMed)
-                .fullName("Dr. Sarah Mitchell")
-                .email("s.mitchell@vitalsync.com")
-                .phone("+1 (555) 321-7654")
-                .specialization("General Practice & Internal Medicine")
-                .qualification("MBBS, MD, Chief Medical Officer")
-                .experience("12 Years")
-                .availableDays("Mon - Sat")
-                .availableTime("09:00 AM - 05:00 PM")
-                .consultationFee(new BigDecimal("100.00"))
-                .status("Available")
-                .imageUrl("https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop&crop=face")
-                .build();
-        doctorRepository.save(d4);
+        if (doctorRepository.findByDoctorCode("DOC-2004").isEmpty()) {
+            Doctor d4 = Doctor.builder()
+                    .doctorCode("DOC-2004")
+                    .user(adminUser)
+                    .department(genMed)
+                    .fullName("Dr. Sarah Mitchell")
+                    .email("s.mitchell@vitalsync.com")
+                    .phone("+1 (555) 321-7654")
+                    .specialization("General Practice & Internal Medicine")
+                    .qualification("MBBS, MD, Chief Medical Officer")
+                    .experience("12 Years")
+                    .availableDays("Mon - Sat")
+                    .availableTime("09:00 AM - 05:00 PM")
+                    .consultationFee(new BigDecimal("100.00"))
+                    .status("Available")
+                    .imageUrl("https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop&crop=face")
+                    .build();
+            doctorRepository.save(d4);
+        }
 
-        log.info("Seeded 4 doctors with linked user and department relationships");
+        log.info("Seeded demo doctors idempotently");
     }
 
     private void seedPatients() {
@@ -328,29 +271,31 @@ public class DataInitializer implements CommandLineRunner {
         };
 
         for (String[] pd : patientData) {
-            User linkedUser = null;
-            if ("PT-1001".equals(pd[0])) linkedUser = pUser1;
-            if ("PT-1002".equals(pd[0])) linkedUser = pUser2;
+            if (patientRepository.findByPatientCode(pd[0]).isEmpty()) {
+                User linkedUser = null;
+                if ("PT-1001".equals(pd[0])) linkedUser = pUser1;
+                if ("PT-1002".equals(pd[0])) linkedUser = pUser2;
 
-            Patient p = Patient.builder()
-                    .patientCode(pd[0])
-                    .user(linkedUser)
-                    .fullName(pd[1])
-                    .dob(LocalDate.parse(pd[2]))
-                    .age(Integer.parseInt(pd[3]))
-                    .gender(pd[4])
-                    .bloodGroup(pd[5])
-                    .phone(pd[6])
-                    .email(pd[7])
-                    .address(pd[8])
-                    .emergencyContact(pd[9])
-                    .medicalHistory(pd[10])
-                    .allergies(pd[11])
-                    .status(pd[12])
-                    .build();
-            patientRepository.save(p);
+                Patient p = Patient.builder()
+                        .patientCode(pd[0])
+                        .user(linkedUser)
+                        .fullName(pd[1])
+                        .dob(LocalDate.parse(pd[2]))
+                        .age(Integer.parseInt(pd[3]))
+                        .gender(pd[4])
+                        .bloodGroup(pd[5])
+                        .phone(pd[6])
+                        .email(pd[7])
+                        .address(pd[8])
+                        .emergencyContact(pd[9])
+                        .medicalHistory(pd[10])
+                        .allergies(pd[11])
+                        .status(pd[12])
+                        .build();
+                patientRepository.save(p);
+            }
         }
-        log.info("Seeded 8 patients");
+        log.info("Seeded demo patients idempotently");
     }
 
     private void seedBeds() {
@@ -365,75 +310,83 @@ public class DataInitializer implements CommandLineRunner {
         if (icu != null) {
             for (int i = 1; i <= 10; i++) {
                 String bedNum = String.format("ICU-%03d", i);
-                String status = (i <= 3) ? "OCCUPIED" : (i == 4 ? "RESERVED" : "AVAILABLE");
-                Patient current = (i == 1) ? p1 : (i == 2 ? p3 : null);
+                if (bedRepository.findByBedNumber(bedNum).isEmpty()) {
+                    String status = (i <= 3) ? "OCCUPIED" : (i == 4 ? "RESERVED" : "AVAILABLE");
+                    Patient current = (i == 1) ? p1 : (i == 2 ? p3 : null);
 
-                Bed bed = Bed.builder()
-                        .bedNumber(bedNum)
-                        .department(icu)
-                        .bedType("ICU")
-                        .dailyCharge(new BigDecimal("500.00"))
-                        .status(status)
-                        .currentPatient(current)
-                        .admissionDate(current != null ? LocalDateTime.now().minusDays(2) : null)
-                        .notes("Advanced mechanical ventilator and dynamic hemodynamic monitor")
-                        .build();
-                bedRepository.save(bed);
+                    Bed bed = Bed.builder()
+                            .bedNumber(bedNum)
+                            .department(icu)
+                            .bedType("ICU")
+                            .dailyCharge(new BigDecimal("500.00"))
+                            .status(status)
+                            .currentPatient(current)
+                            .admissionDate(current != null ? LocalDateTime.now().minusDays(2) : null)
+                            .notes("Advanced mechanical ventilator and dynamic hemodynamic monitor")
+                            .build();
+                    bedRepository.save(bed);
+                }
             }
         }
 
         if (emg != null) {
             for (int i = 1; i <= 8; i++) {
                 String bedNum = String.format("EMG-%02d", i);
-                String status = (i <= 2) ? "OCCUPIED" : "AVAILABLE";
+                if (bedRepository.findByBedNumber(bedNum).isEmpty()) {
+                    String status = (i <= 2) ? "OCCUPIED" : "AVAILABLE";
 
-                Bed bed = Bed.builder()
-                        .bedNumber(bedNum)
-                        .department(emg)
-                        .bedType("EMERGENCY")
-                        .dailyCharge(new BigDecimal("300.00"))
-                        .status(status)
-                        .notes("Level 1 Acute Trauma resuscitation bay")
-                        .build();
-                bedRepository.save(bed);
+                    Bed bed = Bed.builder()
+                            .bedNumber(bedNum)
+                            .department(emg)
+                            .bedType("EMERGENCY")
+                            .dailyCharge(new BigDecimal("300.00"))
+                            .status(status)
+                            .notes("Level 1 Acute Trauma resuscitation bay")
+                            .build();
+                    bedRepository.save(bed);
+                }
             }
         }
 
         if (genMed != null) {
             for (int i = 1; i <= 15; i++) {
                 String bedNum = String.format("GW-%03d", 200 + i);
-                String status = (i <= 4) ? "OCCUPIED" : "AVAILABLE";
+                if (bedRepository.findByBedNumber(bedNum).isEmpty()) {
+                    String status = (i <= 4) ? "OCCUPIED" : "AVAILABLE";
 
-                Bed bed = Bed.builder()
-                        .bedNumber(bedNum)
-                        .department(genMed)
-                        .bedType("GENERAL")
-                        .dailyCharge(new BigDecimal("100.00"))
-                        .status(status)
-                        .notes("General Medical Inpatient ward unit")
-                        .build();
-                bedRepository.save(bed);
+                    Bed bed = Bed.builder()
+                            .bedNumber(bedNum)
+                            .department(genMed)
+                            .bedType("GENERAL")
+                            .dailyCharge(new BigDecimal("100.00"))
+                            .status(status)
+                            .notes("General Medical Inpatient ward unit")
+                            .build();
+                    bedRepository.save(bed);
+                }
             }
         }
 
         if (cardio != null) {
             for (int i = 1; i <= 5; i++) {
                 String bedNum = String.format("PVT-%03d", 300 + i);
-                String status = (i == 1) ? "OCCUPIED" : "AVAILABLE";
+                if (bedRepository.findByBedNumber(bedNum).isEmpty()) {
+                    String status = (i == 1) ? "OCCUPIED" : "AVAILABLE";
 
-                Bed bed = Bed.builder()
-                        .bedNumber(bedNum)
-                        .department(cardio)
-                        .bedType("PRIVATE")
-                        .dailyCharge(new BigDecimal("250.00"))
-                        .status(status)
-                        .notes("Private single-room deluxe recovery suite")
-                        .build();
-                bedRepository.save(bed);
+                    Bed bed = Bed.builder()
+                            .bedNumber(bedNum)
+                            .department(cardio)
+                            .bedType("PRIVATE")
+                            .dailyCharge(new BigDecimal("250.00"))
+                            .status(status)
+                            .notes("Private single-room deluxe recovery suite")
+                            .build();
+                    bedRepository.save(bed);
+                }
             }
         }
 
-        log.info("Seeded hospital beds (ICU, Emergency, General Ward, Private suites)");
+        log.info("Seeded demo beds idempotently");
     }
 
     private void seedAppointments() {
@@ -449,7 +402,7 @@ public class DataInitializer implements CommandLineRunner {
         Doctor d2 = doctorRepository.findByDoctorCode("DOC-2002").orElse(null);
         Doctor d3 = doctorRepository.findByDoctorCode("DOC-2003").orElse(null);
 
-        if (p1 != null && d1 != null) {
+        if (p1 != null && d1 != null && appointmentRepository.findByAppointmentCode("APT-2045").isEmpty()) {
             Appointment a1 = new Appointment();
             a1.setAppointmentCode("APT-2045");
             a1.setPatient(p1); a1.setDoctor(d1);
@@ -461,7 +414,7 @@ public class DataInitializer implements CommandLineRunner {
             appointmentRepository.save(a1);
         }
 
-        if (p2 != null && d2 != null) {
+        if (p2 != null && d2 != null && appointmentRepository.findByAppointmentCode("APT-2046").isEmpty()) {
             Appointment a2 = new Appointment();
             a2.setAppointmentCode("APT-2046");
             a2.setPatient(p2); a2.setDoctor(d2);
@@ -473,7 +426,7 @@ public class DataInitializer implements CommandLineRunner {
             appointmentRepository.save(a2);
         }
 
-        if (p6 != null && d2 != null) {
+        if (p6 != null && d2 != null && appointmentRepository.findByAppointmentCode("APT-2047").isEmpty()) {
             Appointment a3 = new Appointment();
             a3.setAppointmentCode("APT-2047");
             a3.setPatient(p6); a3.setDoctor(d2);
@@ -485,7 +438,7 @@ public class DataInitializer implements CommandLineRunner {
             appointmentRepository.save(a3);
         }
 
-        if (p7 != null && d1 != null) {
+        if (p7 != null && d1 != null && appointmentRepository.findByAppointmentCode("APT-2048").isEmpty()) {
             Appointment a4 = new Appointment();
             a4.setAppointmentCode("APT-2048");
             a4.setPatient(p7); a4.setDoctor(d1);
@@ -497,7 +450,7 @@ public class DataInitializer implements CommandLineRunner {
             appointmentRepository.save(a4);
         }
 
-        if (p4 != null && d3 != null) {
+        if (p4 != null && d3 != null && appointmentRepository.findByAppointmentCode("APT-2049").isEmpty()) {
             Appointment a5 = new Appointment();
             a5.setAppointmentCode("APT-2049");
             a5.setPatient(p4); a5.setDoctor(d3);
@@ -509,7 +462,7 @@ public class DataInitializer implements CommandLineRunner {
             appointmentRepository.save(a5);
         }
 
-        log.info("Seeded appointments");
+        log.info("Seeded demo appointments idempotently");
     }
 
     private void seedPrescriptions() {
@@ -520,7 +473,7 @@ public class DataInitializer implements CommandLineRunner {
 
         LocalDate today = LocalDate.now();
 
-        if (p1 != null && d1 != null) {
+        if (p1 != null && d1 != null && prescriptionRepository.findByPrescriptionCode("RX-4001").isEmpty()) {
             Prescription rx1 = new Prescription();
             rx1.setPrescriptionCode("RX-4001");
             rx1.setPatient(p1); rx1.setDoctor(d1);
@@ -541,7 +494,7 @@ public class DataInitializer implements CommandLineRunner {
             prescriptionRepository.save(rx1);
         }
 
-        if (p2 != null && d2 != null) {
+        if (p2 != null && d2 != null && prescriptionRepository.findByPrescriptionCode("RX-4002").isEmpty()) {
             Prescription rx2 = new Prescription();
             rx2.setPrescriptionCode("RX-4002");
             rx2.setPatient(p2); rx2.setDoctor(d2);
@@ -559,7 +512,7 @@ public class DataInitializer implements CommandLineRunner {
             prescriptionRepository.save(rx2);
         }
 
-        log.info("Seeded prescriptions");
+        log.info("Seeded demo prescriptions idempotently");
     }
 
     private void seedMedicalReports() {
@@ -569,38 +522,42 @@ public class DataInitializer implements CommandLineRunner {
         Doctor d2 = doctorRepository.findByDoctorCode("DOC-2002").orElse(null);
 
         if (p1 != null && d1 != null) {
-            MedicalReport rep1 = MedicalReport.builder()
-                    .reportCode("REP-7001")
-                    .patient(p1)
-                    .doctor(d1)
-                    .departmentName("Cardiology")
-                    .reportType("12-Lead Electrocardiogram (ECG)")
-                    .reportDate(LocalDate.now().minusDays(3))
-                    .symptoms("Exertional palpitation and mild chest heaviness.")
-                    .diagnosis("Sinus rhythm with borderline LVH criteria.")
-                    .testResults("PR Interval: 160ms, QRS Duration: 92ms, QTc: 418ms. No acute ST-elevation or T-wave inversion.")
-                    .doctorNotes("Continue Lisinopril 10mg. Schedule 2D-Echocardiogram if symptoms persist.")
-                    .status("Final")
-                    .build();
-            medicalReportRepository.save(rep1);
+            if (medicalReportRepository.findByReportCode("REP-7001").isEmpty()) {
+                MedicalReport rep1 = MedicalReport.builder()
+                        .reportCode("REP-7001")
+                        .patient(p1)
+                        .doctor(d1)
+                        .departmentName("Cardiology")
+                        .reportType("12-Lead Electrocardiogram (ECG)")
+                        .reportDate(LocalDate.now().minusDays(3))
+                        .symptoms("Exertional palpitation and mild chest heaviness.")
+                        .diagnosis("Sinus rhythm with borderline LVH criteria.")
+                        .testResults("PR Interval: 160ms, QRS Duration: 92ms, QTc: 418ms. No acute ST-elevation or T-wave inversion.")
+                        .doctorNotes("Continue Lisinopril 10mg. Schedule 2D-Echocardiogram if symptoms persist.")
+                        .status("Final")
+                        .build();
+                medicalReportRepository.save(rep1);
+            }
 
-            MedicalReport rep2 = MedicalReport.builder()
-                    .reportCode("REP-7002")
-                    .patient(p1)
-                    .doctor(d1)
-                    .departmentName("Pathology & Diagnostics")
-                    .reportType("Comprehensive Lipid Profile")
-                    .reportDate(LocalDate.now().minusDays(10))
-                    .symptoms("Routine cardiovascular risk profiling.")
-                    .diagnosis("Mild Dyslipidemia")
-                    .testResults("Total Cholesterol: 215 mg/dL (Borderline High), Triglycerides: 165 mg/dL, HDL: 44 mg/dL, LDL: 138 mg/dL.")
-                    .doctorNotes("Lifestyle modification recommended: low saturated fat diet, 30 min daily walking.")
-                    .status("Final")
-                    .build();
-            medicalReportRepository.save(rep2);
+            if (medicalReportRepository.findByReportCode("REP-7002").isEmpty()) {
+                MedicalReport rep2 = MedicalReport.builder()
+                        .reportCode("REP-7002")
+                        .patient(p1)
+                        .doctor(d1)
+                        .departmentName("Pathology & Diagnostics")
+                        .reportType("Comprehensive Lipid Profile")
+                        .reportDate(LocalDate.now().minusDays(10))
+                        .symptoms("Routine cardiovascular risk profiling.")
+                        .diagnosis("Mild Dyslipidemia")
+                        .testResults("Total Cholesterol: 215 mg/dL (Borderline High), Triglycerides: 165 mg/dL, HDL: 44 mg/dL, LDL: 138 mg/dL.")
+                        .doctorNotes("Lifestyle modification recommended: low saturated fat diet, 30 min daily walking.")
+                        .status("Final")
+                        .build();
+                medicalReportRepository.save(rep2);
+            }
         }
 
-        if (p2 != null && d2 != null) {
+        if (p2 != null && d2 != null && medicalReportRepository.findByReportCode("REP-7003").isEmpty()) {
             MedicalReport rep3 = MedicalReport.builder()
                     .reportCode("REP-7003")
                     .patient(p2)
@@ -617,7 +574,7 @@ public class DataInitializer implements CommandLineRunner {
             medicalReportRepository.save(rep3);
         }
 
-        log.info("Seeded medical reports");
+        log.info("Seeded demo medical reports idempotently");
     }
 
     private void seedBills() {
@@ -630,7 +587,7 @@ public class DataInitializer implements CommandLineRunner {
 
         LocalDate today = LocalDate.now();
 
-        if (p1 != null && d1 != null) {
+        if (p1 != null && d1 != null && billRepository.findByBillCode("INV-2023-001").isEmpty()) {
             Bill b1 = new Bill();
             b1.setBillCode("INV-2023-001");
             b1.setPatient(p1); b1.setDoctor(d1);
@@ -646,7 +603,7 @@ public class DataInitializer implements CommandLineRunner {
             billRepository.save(b1);
         }
 
-        if (p2 != null && d2 != null) {
+        if (p2 != null && d2 != null && billRepository.findByBillCode("INV-2023-002").isEmpty()) {
             Bill b2 = new Bill();
             b2.setBillCode("INV-2023-002");
             b2.setPatient(p2); b2.setDoctor(d2);
@@ -662,7 +619,7 @@ public class DataInitializer implements CommandLineRunner {
             billRepository.save(b2);
         }
 
-        if (p3 != null && d3 != null) {
+        if (p3 != null && d3 != null && billRepository.findByBillCode("INV-2023-003").isEmpty()) {
             Bill b3 = new Bill();
             b3.setBillCode("INV-2023-003");
             b3.setPatient(p3); b3.setDoctor(d3);
@@ -678,46 +635,50 @@ public class DataInitializer implements CommandLineRunner {
             billRepository.save(b3);
         }
 
-        log.info("Seeded 3 bills");
+        log.info("Seeded demo bills idempotently");
     }
 
     private void seedHospitalSettings() {
-        HospitalSetting settings = new HospitalSetting();
-        settings.setHospitalName("VitalSync Multi-Specialty Hospital");
-        settings.setPhone("+91 (800) 123-4567");
-        settings.setEmail("info@vitalsync.com");
-        settings.setAddress("Medical Center Road, Healthcare City, MH 400001");
-        settings.setRegistrationNumber("VS-HOSP-2026-IND");
-        settings.setInvoiceFooter("Thank you for trusting VitalSync Healthcare. Get well soon!");
-        hospitalSettingRepository.save(settings);
-        log.info("Seeded hospital settings");
+        if (hospitalSettingRepository.count() == 0) {
+            HospitalSetting settings = new HospitalSetting();
+            settings.setHospitalName("VitalSync Multi-Specialty Hospital");
+            settings.setPhone("+91 (800) 123-4567");
+            settings.setEmail("info@vitalsync.com");
+            settings.setAddress("Medical Center Road, Healthcare City, MH 400001");
+            settings.setRegistrationNumber("VS-HOSP-2026-IND");
+            settings.setInvoiceFooter("Thank you for trusting VitalSync Healthcare. Get well soon!");
+            hospitalSettingRepository.save(settings);
+            log.info("Initialized hospital settings");
+        }
     }
 
     private void seedAuditLogs() {
-        AuditLog l1 = AuditLog.builder()
-                .username("system")
-                .role("SYSTEM")
-                .action("SYSTEM_INITIALIZATION")
-                .entityName("System")
-                .entityId("0")
-                .details("VitalSync Clinical Precision HMS initialized and synchronized.")
-                .ipAddress("127.0.0.1")
-                .timestamp(LocalDateTime.now())
-                .build();
-        auditLogRepository.save(l1);
+        if (auditLogRepository.count() == 0) {
+            AuditLog l1 = AuditLog.builder()
+                    .username("system")
+                    .role("SYSTEM")
+                    .action("SYSTEM_INITIALIZATION")
+                    .entityName("System")
+                    .entityId("0")
+                    .details("VitalSync Clinical Precision HMS initialized and synchronized.")
+                    .ipAddress("127.0.0.1")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            auditLogRepository.save(l1);
 
-        AuditLog l2 = AuditLog.builder()
-                .username("admin")
-                .role("ADMIN")
-                .action("SYSTEM_VERIFICATION")
-                .entityName("HospitalSetting")
-                .entityId("1")
-                .details("Hospital configuration verified and active.")
-                .ipAddress("127.0.0.1")
-                .timestamp(LocalDateTime.now())
-                .build();
-        auditLogRepository.save(l2);
+            AuditLog l2 = AuditLog.builder()
+                    .username("admin")
+                    .role("ADMIN")
+                    .action("SYSTEM_VERIFICATION")
+                    .entityName("HospitalSetting")
+                    .entityId("1")
+                    .details("Hospital configuration verified and active.")
+                    .ipAddress("127.0.0.1")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            auditLogRepository.save(l2);
 
-        log.info("Seeded audit logs");
+            log.info("Initialized audit logs");
+        }
     }
 }
