@@ -3,7 +3,6 @@ package com.vitalsync.hms;
 import com.vitalsync.hms.config.DataInitializer;
 import com.vitalsync.hms.dto.*;
 import com.vitalsync.hms.entity.*;
-import com.vitalsync.hms.exception.ConflictException;
 import com.vitalsync.hms.repository.*;
 import com.vitalsync.hms.service.*;
 import org.junit.jupiter.api.DisplayName;
@@ -12,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,214 +63,243 @@ public class ProductionPersistenceLifecycleTest {
     private DataInitializer dataInitializer;
 
     @Test
-    @DisplayName("Test 1: Create Patient -> Read -> Update -> Simulate Backend Restart -> Data Remains Intact")
+    @DisplayName("TEST A: Create patient -> Save -> GET patient -> Restart application -> GET patient -> Still exists")
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    public void testPatientPersistenceLifecycle() {
-        // 1. Create Patient
+    public void testA_CreatePatientPersistsAcrossRestart() {
         PatientDto patientDto = PatientDto.builder()
-                .fullName("Permanent Test Patient")
-                .dob(LocalDate.of(1990, 5, 20))
-                .gender("Female")
-                .bloodGroup("B+")
-                .phone("+1 (555) 777-8888")
-                .email("permanent.test@hospital.com")
-                .address("100 Persistence Boulevard, Suite 5A")
-                .emergencyContact("+1 (555) 999-0000")
-                .medicalHistory("Prior knee surgery")
-                .allergies("Latex")
+                .fullName("Test-A Patient")
+                .dob(LocalDate.of(1991, 7, 10))
+                .gender("Male")
+                .bloodGroup("O+")
+                .phone("+1 (555) 700-0001")
+                .email("test.a.patient@vitalsync.com")
                 .status("Active")
                 .build();
 
         PatientDto created = patientService.create(patientDto);
         assertNotNull(created.getId());
-        assertNotNull(created.getPatientCode());
-        assertEquals("Permanent Test Patient", created.getFullName());
+        Long id = created.getId();
 
-        Long patientId = created.getId();
+        PatientDto readBefore = patientService.getById(id);
+        assertEquals("Test-A Patient", readBefore.getFullName());
 
-        // 2. Read Patient
-        PatientDto fetched = patientService.getById(patientId);
-        assertEquals("Permanent Test Patient", fetched.getFullName());
-        assertEquals("+1 (555) 777-8888", fetched.getPhone());
-
-        // 3. Update Patient
-        fetched.setPhone("+1 (555) 000-1111");
-        fetched.setAllergies("Latex, Penicillin");
-        PatientDto updated = patientService.update(patientId, fetched);
-        assertEquals("+1 (555) 000-1111", updated.getPhone());
-        assertEquals("Latex, Penicillin", updated.getAllergies());
-
-        // 4. Simulate application restart by invoking DataInitializer.run()
+        // Simulate application restart
         dataInitializer.run();
 
-        // 5. Verify patient record survived restart without loss or rollback
-        Patient survived = patientRepository.findById(patientId).orElse(null);
-        assertNotNull(survived, "Patient must survive backend restart!");
-        assertEquals("Permanent Test Patient", survived.getFullName());
-        assertEquals("+1 (555) 000-1111", survived.getPhone(), "Updated phone must survive restart!");
-        assertEquals("Latex, Penicillin", survived.getAllergies(), "Updated allergies must survive restart!");
+        PatientDto readAfter = patientService.getById(id);
+        assertNotNull(readAfter, "Patient must survive restart!");
+        assertEquals("Test-A Patient", readAfter.getFullName());
     }
 
     @Test
-    @DisplayName("Test 2: Create Doctor, Appointment, Prescription & Bill -> Relational Integrity & Restart Persistence")
+    @DisplayName("TEST B: Create patient -> Update patient -> Restart application -> GET patient -> Updated values still exist")
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    public void testFullClinicalWorkflowPersistenceAcrossRestart() {
+    public void testB_UpdatePatientPersistsAcrossRestart() {
+        PatientDto patientDto = PatientDto.builder()
+                .fullName("Test-B Patient")
+                .dob(LocalDate.of(1988, 3, 22))
+                .gender("Female")
+                .bloodGroup("A+")
+                .phone("+1 (555) 700-0002")
+                .email("test.b.patient@vitalsync.com")
+                .allergies("None")
+                .status("Active")
+                .build();
+
+        PatientDto created = patientService.create(patientDto);
+        Long id = created.getId();
+
+        // Update fields
+        created.setPhone("+1 (555) 700-9999");
+        created.setAllergies("Sulfa Drugs, Codeine");
+        PatientDto updated = patientService.update(id, created);
+        assertEquals("+1 (555) 700-9999", updated.getPhone());
+        assertEquals("Sulfa Drugs, Codeine", updated.getAllergies());
+
+        // Simulate application restart
+        dataInitializer.run();
+
+        PatientDto readAfter = patientService.getById(id);
+        assertNotNull(readAfter);
+        assertEquals("+1 (555) 700-9999", readAfter.getPhone(), "Updated phone must survive restart!");
+        assertEquals("Sulfa Drugs, Codeine", readAfter.getAllergies(), "Updated allergies must survive restart!");
+    }
+
+    @Test
+    @DisplayName("TEST C: Create doctor -> Restart -> Verify doctor still exists")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    public void testC_CreateDoctorPersistsAcrossRestart() {
         Department dept = departmentRepository.findAll().stream().findFirst().orElseThrow();
 
-        // 1. Register Doctor
         DoctorDto doctorDto = DoctorDto.builder()
-                .fullName("Dr. Hardened Specialist")
-                .email("hardened.specialist@vitalsync.com")
-                .phone("+1 (555) 333-4444")
+                .fullName("Dr. Test-C Specialist")
+                .email("test.c.specialist@vitalsync.com")
+                .phone("+1 (555) 700-0003")
                 .specialization("Cardiology")
                 .qualification("MD, FACC")
-                .experience("14 Years")
+                .experience("12 Years")
                 .availableDays("Mon, Wed, Fri")
                 .availableTime("09:00 AM - 05:00 PM")
-                .consultationFee(new BigDecimal("175.00"))
+                .consultationFee(new BigDecimal("160.00"))
                 .status("Available")
                 .departmentId(dept.getId())
                 .build();
 
-        DoctorDto createdDoc = doctorService.create(doctorDto);
-        assertNotNull(createdDoc.getId());
-        Long docId = createdDoc.getId();
+        DoctorDto created = doctorService.create(doctorDto);
+        Long docId = created.getId();
 
-        // 2. Register Patient
-        PatientDto patientDto = PatientDto.builder()
-                .fullName("Workflow Patient")
-                .dob(LocalDate.of(1985, 3, 15))
-                .gender("Male")
-                .bloodGroup("O-")
-                .phone("+1 (555) 444-5555")
-                .email("workflow.patient@vitalsync.com")
-                .status("Active")
-                .build();
-        PatientDto createdPatient = patientService.create(patientDto);
-        Long patId = createdPatient.getId();
+        // Simulate restart
+        dataInitializer.run();
 
-        // 3. Find next available date (Wednesday or Friday)
+        DoctorDto readAfter = doctorService.getById(docId);
+        assertNotNull(readAfter, "Doctor must survive restart!");
+        assertEquals("Dr. Test-C Specialist", readAfter.getFullName());
+        assertEquals("Mon, Wed, Fri", readAfter.getAvailableDays());
+    }
+
+    @Test
+    @DisplayName("TEST D: Create appointment -> Restart -> Verify appointment still exists")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    public void testD_CreateAppointmentPersistsAcrossRestart() {
+        Doctor doctor = doctorRepository.findAll().stream().findFirst().orElseThrow();
+        Patient patient = patientRepository.findAll().stream().findFirst().orElseThrow();
+
+        // Next Monday, Wednesday or Friday
         LocalDate nextDate = LocalDate.now().plusDays(1);
         while (nextDate.getDayOfWeek().getValue() != 1 && nextDate.getDayOfWeek().getValue() != 3 && nextDate.getDayOfWeek().getValue() != 5) {
             nextDate = nextDate.plusDays(1);
         }
 
-        // 4. Book Appointment
         AppointmentDto aptDto = AppointmentDto.builder()
-                .doctorId(docId)
-                .patientId(patId)
+                .doctorId(doctor.getId())
+                .patientId(patient.getId())
                 .appointmentDate(nextDate)
-                .appointmentTime("09:30 AM")
-                .reason("Post-Cardiac Diagnostic Follow-up")
+                .appointmentTime("09:00 AM")
+                .reason("Test-D Routine Consultation")
                 .status("Scheduled")
                 .build();
-        AppointmentDto createdApt = appointmentService.create(aptDto);
-        assertNotNull(createdApt.getId());
-        Long aptId = createdApt.getId();
 
-        // 5. Create Prescription with Medicines
-        PrescriptionDto rxDto = PrescriptionDto.builder()
-                .doctorId(docId)
-                .patientId(patId)
-                .prescriptionDate(nextDate)
-                .diagnosis("Hypertensive Heart Disease")
-                .symptoms("Exertional dyspnea")
-                .instructions("Take with food morning and night.")
-                .medicines(new ArrayList<>(List.of(
-                        PrescriptionMedicineDto.builder()
-                                .medicineName("Amlodipine 5mg")
-                                .dosage("1 Tab")
-                                .frequency("1-0-0 (OD)")
-                                .duration("30 Days")
-                                .build(),
-                        PrescriptionMedicineDto.builder()
-                                .medicineName("Atorvastatin 20mg")
-                                .dosage("1 Tab")
-                                .frequency("0-0-1 (HS)")
-                                .duration("30 Days")
-                                .build()
-                )))
-                .build();
-        PrescriptionDto createdRx = prescriptionService.create(rxDto);
-        assertNotNull(createdRx.getId());
-        assertEquals(2, createdRx.getMedicines().size());
-        Long rxId = createdRx.getId();
+        AppointmentDto created = appointmentService.create(aptDto);
+        Long aptId = created.getId();
 
-        // 6. Create Bill
-        BillDto billDto = BillDto.builder()
-                .doctorId(docId)
-                .patientId(patId)
-                .billDate(nextDate)
-                .consultationFee(new BigDecimal("175.00"))
-                .medicineCharges(new BigDecimal("60.00"))
-                .otherCharges(BigDecimal.ZERO)
-                .discount(BigDecimal.ZERO)
-                .tax(new BigDecimal("10.00"))
-                .paymentMethod("Credit Card")
-                .paymentStatus("Paid")
-                .build();
-        BillDto createdBill = billService.create(billDto);
-        assertNotNull(createdBill.getId());
-        Long billId = createdBill.getId();
-
-        // 7. Simulate restart by invoking DataInitializer.run()
+        // Simulate restart
         dataInitializer.run();
 
-        // 8. Verify all entities and foreign key links survived restart intact
-        Appointment aptSurvived = appointmentRepository.findById(aptId).orElse(null);
-        assertNotNull(aptSurvived);
-        assertEquals(docId, aptSurvived.getDoctor().getId());
-        assertEquals(patId, aptSurvived.getPatient().getId());
-
-        Prescription rxSurvived = prescriptionRepository.findById(rxId).orElse(null);
-        assertNotNull(rxSurvived);
-        assertEquals(2, rxSurvived.getMedicines().size());
-        assertEquals("Amlodipine 5mg", rxSurvived.getMedicines().get(0).getMedicineName());
-
-        Bill billSurvived = billRepository.findById(billId).orElse(null);
-        assertNotNull(billSurvived);
-        assertEquals("Paid", billSurvived.getPaymentStatus());
-        assertEquals(new BigDecimal("245.00"), billSurvived.getTotalAmount());
+        Appointment apt = appointmentRepository.findById(aptId).orElse(null);
+        assertNotNull(apt, "Appointment must survive restart!");
+        assertEquals("Test-D Routine Consultation", apt.getReason());
+        assertEquals(doctor.getId(), apt.getDoctor().getId());
     }
 
     @Test
-    @DisplayName("Test 3: Admin Customization Survives Restart Without Reverting")
-    public void testAdminCustomizationSurvivesRestart() {
-        // Find existing admin
+    @DisplayName("TEST E: Create prescription + medicines -> Restart -> Verify prescription and medicines still exist")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    public void testE_CreatePrescriptionAndMedicinesPersistAcrossRestart() {
+        Doctor doctor = doctorRepository.findAll().stream().findFirst().orElseThrow();
+        Patient patient = patientRepository.findAll().stream().findFirst().orElseThrow();
+
+        PrescriptionDto rxDto = PrescriptionDto.builder()
+                .doctorId(doctor.getId())
+                .patientId(patient.getId())
+                .prescriptionDate(LocalDate.now())
+                .diagnosis("Test-E Acute Bronchitis")
+                .symptoms("Cough, mild wheezing")
+                .instructions("Complete full 7-day course.")
+                .medicines(new ArrayList<>(List.of(
+                        PrescriptionMedicineDto.builder()
+                                .medicineName("Azithromycin 500mg")
+                                .dosage("1 Tab")
+                                .frequency("1-0-0 (OD)")
+                                .duration("5 Days")
+                                .build(),
+                        PrescriptionMedicineDto.builder()
+                                .medicineName("Levocetirizine 5mg")
+                                .dosage("1 Tab")
+                                .frequency("0-0-1 (HS)")
+                                .duration("7 Days")
+                                .build()
+                )))
+                .build();
+
+        PrescriptionDto created = prescriptionService.create(rxDto);
+        Long rxId = created.getId();
+
+        // Simulate restart
+        dataInitializer.run();
+
+        Prescription rx = prescriptionRepository.findById(rxId).orElse(null);
+        assertNotNull(rx, "Prescription must survive restart!");
+        assertEquals(2, rx.getMedicines().size(), "Child medicines must survive restart!");
+        assertEquals("Azithromycin 500mg", rx.getMedicines().get(0).getMedicineName());
+    }
+
+    @Test
+    @DisplayName("TEST F: Create bill -> Restart -> Verify bill still exists")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    public void testF_CreateBillPersistsAcrossRestart() {
+        Doctor doctor = doctorRepository.findAll().stream().findFirst().orElseThrow();
+        Patient patient = patientRepository.findAll().stream().findFirst().orElseThrow();
+
+        BillDto billDto = BillDto.builder()
+                .doctorId(doctor.getId())
+                .patientId(patient.getId())
+                .billDate(LocalDate.now())
+                .consultationFee(new BigDecimal("120.00"))
+                .medicineCharges(new BigDecimal("45.00"))
+                .otherCharges(BigDecimal.ZERO)
+                .discount(new BigDecimal("15.00"))
+                .tax(new BigDecimal("7.50"))
+                .paymentMethod("UPI / QR")
+                .paymentStatus("Paid")
+                .build();
+
+        BillDto created = billService.create(billDto);
+        Long billId = created.getId();
+
+        // Simulate restart
+        dataInitializer.run();
+
+        Bill bill = billRepository.findById(billId).orElse(null);
+        assertNotNull(bill, "Bill must survive restart!");
+        assertEquals("Paid", bill.getPaymentStatus());
+        assertEquals("UPI / QR", bill.getPaymentMethod());
+        assertEquals(new BigDecimal("157.50"), bill.getTotalAmount());
+    }
+
+    @Test
+    @DisplayName("TEST G: Customize admin profile -> Restart -> Verify custom values remain")
+    public void testG_CustomizeAdminProfileSurvivesRestart() {
         User admin = userRepository.findByUsername("ankush_876").orElse(null);
         if (admin == null) {
             dataInitializer.run();
             admin = userRepository.findByUsername("ankush_876").orElseThrow();
         }
 
-        // Customise admin's profile
-        admin.setFullName("Dr. Ankush singh (MD, Senior Administrator)");
-        admin.setPhone("+91 9999988888");
+        admin.setFullName("Dr. Ankush singh (Chief Medical Officer)");
+        admin.setPhone("+91 9988776655");
         userRepository.save(admin);
 
         // Simulate backend restart
         dataInitializer.run();
 
-        // Verify the admin's modified details were NOT reverted by DataInitializer
         User postRestartAdmin = userRepository.findByUsername("ankush_876").orElseThrow();
-        assertEquals("Dr. Ankush singh (MD, Senior Administrator)", postRestartAdmin.getFullName(),
-                "Admin's customized name must NEVER be overwritten on startup!");
-        assertEquals("+91 9999988888", postRestartAdmin.getPhone(),
-                "Admin's customized phone must NEVER be overwritten on startup!");
+        assertEquals("Dr. Ankush singh (Chief Medical Officer)", postRestartAdmin.getFullName(),
+                "Admin custom name must NOT be overwritten on restart!");
+        assertEquals("+91 9988776655", postRestartAdmin.getPhone(),
+                "Admin custom phone must NOT be overwritten on restart!");
     }
 
     @Test
-    @DisplayName("Test 4: Safe Deletion - Inactive Status Assigned When Relational Records Exist")
+    @DisplayName("TEST H: Patient with clinical history -> Attempt deletion -> Verify safe deactivation -> History remains")
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    public void testSafeDeletionRelationalIntegrity() {
-        // Create patient with linked appointment
+    public void testH_SafeDeactivationPreservesClinicalHistory() {
         PatientDto patientDto = PatientDto.builder()
-                .fullName("Safe Deletion Candidate")
-                .dob(LocalDate.of(1992, 1, 1))
-                .gender("Female")
-                .bloodGroup("A+")
-                .phone("+1 (555) 111-9999")
-                .email("safe.deletion@vitalsync.com")
+                .fullName("Test-H Safe History Patient")
+                .dob(LocalDate.of(1980, 11, 5))
+                .gender("Male")
+                .bloodGroup("AB-")
+                .phone("+1 (555) 700-0008")
+                .email("test.h.history@vitalsync.com")
                 .status("Active")
                 .build();
         PatientDto created = patientService.create(patientDto);
@@ -281,20 +308,24 @@ public class ProductionPersistenceLifecycleTest {
         Doctor doctor = doctorRepository.findAll().stream().findFirst().orElseThrow();
 
         Appointment appointment = new Appointment();
-        appointment.setAppointmentCode("APT-S-" + (System.currentTimeMillis() % 100000000L));
+        appointment.setAppointmentCode("APT-H-" + (System.currentTimeMillis() % 100000000L));
         appointment.setPatient(patientRepository.findById(patId).orElseThrow());
         appointment.setDoctor(doctor);
-        appointment.setAppointmentDate(LocalDate.now().plusDays(5));
-        appointment.setAppointmentTime("10:00 AM");
+        appointment.setAppointmentDate(LocalDate.now().plusDays(4));
+        appointment.setAppointmentTime("11:30 AM");
         appointment.setStatus("Scheduled");
         appointmentRepository.save(appointment);
 
-        // Attempt deletion of patient with active appointment
+        // Attempt deletion of patient with existing appointment
         patientService.delete(patId);
 
-        // Verify patient was NOT physically deleted (which would break DB foreign keys), but set to Inactive
+        // Patient must remain in database, transitioning status to 'Inactive' to preserve relational history
         Patient patient = patientRepository.findById(patId).orElse(null);
-        assertNotNull(patient, "Patient with relational history must not be deleted physically!");
-        assertEquals("Inactive", patient.getStatus(), "Patient status must transition to Inactive!");
+        assertNotNull(patient, "Patient record must NOT be deleted physically!");
+        assertEquals("Inactive", patient.getStatus(), "Patient status must be Inactive!");
+
+        // The appointment must still be intact
+        Appointment linkedApt = appointmentRepository.findByAppointmentCode(appointment.getAppointmentCode()).orElse(null);
+        assertNotNull(linkedApt, "Clinical appointment history must remain preserved!");
     }
 }
