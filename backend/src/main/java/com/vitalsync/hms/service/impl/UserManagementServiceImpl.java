@@ -36,6 +36,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final AuditLogService auditLogService;
 
     private static final List<String> VALID_STATUSES = Arrays.asList("ACTIVE", "INACTIVE", "PENDING", "SUSPENDED");
+    private static final List<String> VALID_ROLES = Arrays.asList("ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT");
 
     @Override
     @Transactional(readOnly = true)

@@ -42,16 +42,23 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse login(AuthRequest request) {
-        // Authenticate with real password verification via Spring Security
+        String identifier = request.getUsername() != null ? request.getUsername().trim() : "";
+        String rawPassword = request.getPassword() != null ? request.getPassword() : "";
+
+        // Resolve user by username or email (case-insensitive)
+        User user = userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier))
+                .or(() -> userRepository.findByUsernameIgnoreCase(identifier))
+                .or(() -> userRepository.findByEmailIgnoreCase(identifier))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username or email: " + identifier));
+
+        // Authenticate with real password verification via Spring Security using canonical username
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
+                        user.getUsername(),
+                        rawPassword
                 )
         );
-
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + request.getUsername()));
 
         // Check account status
         if ("INACTIVE".equalsIgnoreCase(user.getStatus()) || "SUSPENDED".equalsIgnoreCase(user.getStatus())) {
