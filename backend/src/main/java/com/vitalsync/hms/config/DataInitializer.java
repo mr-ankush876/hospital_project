@@ -78,7 +78,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void ensureAdminUser() {
-        // Ensure primary admin user (e.g. ankush_876)
+        // Ensure primary admin user (e.g. ankush_876) exists and has correct credentials
         Optional<User> primaryAdmin = userRepository.findByUsername(adminUsername);
         if (primaryAdmin.isPresent()) {
             User admin = primaryAdmin.get();
@@ -89,7 +89,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setStatus("ACTIVE");
             admin.setRole("ADMIN");
             userRepository.save(admin);
-            log.info("Primary admin account synchronized: username='{}', name='{}'", adminUsername, admin.getFullName());
+            log.info("Administrator account synchronized: username='{}', name='{}'", adminUsername, admin.getFullName());
         } else {
             User admin = User.builder()
                     .username(adminUsername)
@@ -101,30 +101,12 @@ public class DataInitializer implements CommandLineRunner {
                     .status("ACTIVE")
                     .build();
             userRepository.save(admin);
-            log.info("Primary admin account created with username='{}'", adminUsername);
+            log.info("Administrator account created with username='{}'", adminUsername);
         }
 
-        // Also ensure fallback 'admin' account is synchronized if primary is not 'admin'
+        // Clean up legacy fallback 'admin' if custom adminUsername is configured
         if (!"admin".equalsIgnoreCase(adminUsername)) {
-            Optional<User> fallbackAdmin = userRepository.findByUsername("admin");
-            if (fallbackAdmin.isPresent()) {
-                User fAdmin = fallbackAdmin.get();
-                fAdmin.setPassword(passwordEncoder.encode(adminPassword));
-                fAdmin.setStatus("ACTIVE");
-                fAdmin.setRole("ADMIN");
-                userRepository.save(fAdmin);
-            } else {
-                User fAdmin = User.builder()
-                        .username("admin")
-                        .password(passwordEncoder.encode(adminPassword))
-                        .email("admin@vitalsync.com")
-                        .fullName("Dr. Sarah Mitchell (Administrator)")
-                        .phone("+1 (555) 321-7654")
-                        .role("ADMIN")
-                        .status("ACTIVE")
-                        .build();
-                userRepository.save(fAdmin);
-            }
+            userRepository.findByUsername("admin").ifPresent(userRepository::delete);
         }
     }
 
@@ -173,19 +155,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status("ACTIVE")
                 .build();
         userRepository.save(admin);
-
-        if (!"admin".equalsIgnoreCase(adminUsername)) {
-            User fallbackAdmin = User.builder()
-                    .username("admin")
-                    .password(passwordEncoder.encode(adminPassword))
-                    .email("admin@vitalsync.com")
-                    .fullName("Dr. Sarah Mitchell (Administrator)")
-                    .phone("+1 (555) 321-7654")
-                    .role("ADMIN")
-                    .status("ACTIVE")
-                    .build();
-            userRepository.save(fallbackAdmin);
-        }
 
         User drChen = User.builder()
                 .username("dr.chen")
