@@ -145,9 +145,9 @@ public class DataInitializer implements CommandLineRunner {
         User admin = User.builder()
                 .username(adminUsername)
                 .password(passwordEncoder.encode(adminPassword))
-                .email("admin@vitalsync.com")
-                .fullName("Dr. Sarah Mitchell (Administrator)")
-                .phone("+1 (555) 321-7654")
+                .email("ankush@vitalsync.com")
+                .fullName("Dr. Ankush singh (Administrator)")
+                .phone("+91 8797254899")
                 .role("ADMIN")
                 .status("ACTIVE")
                 .build();
@@ -232,7 +232,7 @@ public class DataInitializer implements CommandLineRunner {
         User drChenUser = userRepository.findByUsername("dr.chen").orElse(null);
         User drStantonUser = userRepository.findByUsername("dr.stanton").orElse(null);
         User drVanceUser = userRepository.findByUsername("dr.vance").orElse(null);
-        User adminUser = userRepository.findByUsername("admin").orElse(null);
+        User adminUser = userRepository.findByUsername(adminUsername).orElse(null);
 
         Doctor d1 = Doctor.builder()
                 .doctorCode("DOC-2001")

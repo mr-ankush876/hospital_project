@@ -7,6 +7,7 @@ import com.vitalsync.hms.dto.RegisterPatientRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -33,17 +34,23 @@ class AuthControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Value("${app.admin.username:ankush_876}")
+    private String adminUsername;
+
+    @Value("${app.admin.password:Ankush143@}")
+    private String adminPassword;
+
     @Test
     @DisplayName("Admin Login Success with valid JWT token returned")
     void testAdminLoginSuccess() throws Exception {
-        AuthRequest request = new AuthRequest("admin", "Admin@2026");
+        AuthRequest request = new AuthRequest(adminUsername, adminPassword);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isString())
-                .andExpect(jsonPath("$.user.username").value("admin"))
+                .andExpect(jsonPath("$.user.username").value(adminUsername))
                 .andExpect(jsonPath("$.user.role").value("ADMIN"));
     }
 
@@ -119,7 +126,7 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("Forgot Password initiates valid recovery token")
     void testForgotPasswordInitiation() throws Exception {
-        ForgotPasswordRequest forgot = new ForgotPasswordRequest("admin@vitalsync.com");
+        ForgotPasswordRequest forgot = new ForgotPasswordRequest("ankush@vitalsync.com");
 
         mockMvc.perform(post("/api/auth/forgot-password")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,7 +139,7 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("Invalid Password returns 401 Unauthorized JSON")
     void testInvalidPasswordReturns401() throws Exception {
-        AuthRequest request = new AuthRequest("admin", "wrongpassword");
+        AuthRequest request = new AuthRequest(adminUsername, "wrongpassword");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

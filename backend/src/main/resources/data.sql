@@ -3,7 +3,7 @@
 
 -- 1. Users
 INSERT INTO users (username, password, email, full_name, role) VALUES
-('admin', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07Xd00DMxs.AQubh4a', 'admin@vitalsync.com', 'Dr. Sarah Mitchell', 'ADMIN'),
+('ankush_876', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07Xd00DMxs.AQubh4a', 'admin@vitalsync.com', 'Dr. Sarah Mitchell', 'ADMIN'),
 ('dr.chen', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07Xd00DMxs.AQubh4a', 'r.chen@vitalsync.com', 'Dr. Robert Chen', 'DOCTOR'),
 ('dr.stanton', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07Xd00DMxs.AQubh4a', 'e.stanton@vitalsync.com', 'Dr. Emily Stanton', 'DOCTOR'),
 ('receptionist', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07Xd00DMxs.AQubh4a', 'reception@vitalsync.com', 'Alex Vance', 'RECEPTIONIST');
