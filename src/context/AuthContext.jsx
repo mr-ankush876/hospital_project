@@ -60,13 +60,14 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       setLoading(false);
 
+      const rawMsg = err?.response?.data?.message || err?.response?.data?.error;
       const errorMessage =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        (err?.response?.status === 401 ? 'Invalid username or password' : null) ||
-        (err?.response?.status === 403 ? 'Account is not active or access is denied' : null) ||
-        (err?.message === 'Network Error' ? 'Cannot connect to backend server. Is it running on port 8080?' : null) ||
-        'Login failed. Please try again.';
+        (typeof rawMsg === 'string' && rawMsg.trim() ? rawMsg : null) ||
+        (err?.response?.status === 401 ? 'Invalid username or password. Please check capitalization.' : null) ||
+        (err?.response?.status === 403 ? 'Account is not active or access is denied.' : null) ||
+        (err?.response?.status === 502 || err?.response?.status === 504 ? 'Server is starting up. Please try again in 5 seconds.' : null) ||
+        (err?.message === 'Network Error' ? 'Network Error: Cannot reach backend server.' : null) ||
+        'Login failed. Please verify your credentials and try again.';
 
       setError(errorMessage);
       return { success: false, error: errorMessage };
