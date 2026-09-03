@@ -26,8 +26,22 @@ if exist "%USERPROFILE%\.tools\jdk-17*\bin\java.exe" (
     )
 )
 
+:: Load environment variables from root .env if present
+if exist "%~dp0.env" (
+    for /f "usebackq tokens=1* delims==" %%A in ("%~dp0.env") do (
+        if not "%%A"=="" (
+            set "%%A=%%B"
+        )
+    )
+)
+
+:: If DB_PASSWORD is still unset, provide the local default
+if "%DB_PASSWORD%"=="" (
+    set "DB_PASSWORD=Ankush143@"
+)
+
 echo [*] Starting Spring Boot on http://localhost:8080 (MySQL Profile) ...
-call mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=mysql"
+call mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=mysql" "-Dspring.datasource.password=%DB_PASSWORD%"
 if %errorlevel% neq 0 (
     echo.
     echo [INFO] Attempting fallback to dev profile (Embedded H2 DB)...

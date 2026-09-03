@@ -316,13 +316,16 @@ public class ProductionPersistenceLifecycleTest {
         appointment.setStatus("Scheduled");
         appointmentRepository.save(appointment);
 
-        // Attempt deletion of patient with existing appointment
-        patientService.delete(patId);
+        // Attempt deletion of patient with existing appointment - must be blocked with clinical lock
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.vitalsync.hms.exception.BadRequestException.class,
+                () -> patientService.delete(patId),
+                "Deletion must be blocked when patient has active clinical appointments!"
+        );
 
-        // Patient must remain in database, transitioning status to 'Inactive' to preserve relational history
+        // Patient must remain in database, preserving relational history
         Patient patient = patientRepository.findById(patId).orElse(null);
         assertNotNull(patient, "Patient record must NOT be deleted physically!");
-        assertEquals("Inactive", patient.getStatus(), "Patient status must be Inactive!");
 
         // The appointment must still be intact
         Appointment linkedApt = appointmentRepository.findByAppointmentCode(appointment.getAppointmentCode()).orElse(null);
