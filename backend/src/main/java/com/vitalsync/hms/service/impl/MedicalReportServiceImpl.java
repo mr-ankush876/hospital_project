@@ -102,6 +102,13 @@ public class MedicalReportServiceImpl implements MedicalReportService {
             report.setDoctor(doctor);
         }
 
+        if (dto.getPatientId() != null) {
+            Patient patient = patientRepository.findById(dto.getPatientId()).orElse(null);
+            if (patient != null) {
+                report.setPatient(patient);
+            }
+        }
+
         report.setDepartmentName(dto.getDepartmentName());
         report.setReportType(dto.getReportType());
         if (dto.getReportDate() != null) report.setReportDate(dto.getReportDate());

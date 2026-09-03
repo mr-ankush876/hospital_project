@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { patientApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -607,12 +608,20 @@ const Patients = () => {
 
             {hasRole(['ADMIN', 'RECEPTIONIST']) && (
               <div className="flex justify-end gap-3 pt-4 border-t border-surface-variant">
+                <Link
+                  to={`/medical-reports`}
+                  onClick={() => setShowDetail(null)}
+                  className="px-4 py-2 rounded-xl bg-surface border border-outline-variant text-on-surface font-bold text-xs sm:text-sm hover:bg-surface-container-high transition-colors flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-base">description</span>
+                  <span>Medical Reports</span>
+                </Link>
                 <button
                   onClick={() => {
                     setShowDetail(null);
                     openEdit(showDetail);
                   }}
-                  className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-sm hover:bg-primary-container transition-colors shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs sm:text-sm hover:bg-primary-container transition-colors shadow-sm"
                 >
                   Edit Profile
                 </button>

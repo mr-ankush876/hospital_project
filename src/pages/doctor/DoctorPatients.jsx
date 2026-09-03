@@ -127,31 +127,19 @@ const DoctorPatients = () => {
               </div>
 
               <div className="pt-3 border-t border-surface-variant flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => setDeletePatient(patient)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  title="Remove or deactivate patient record"
+                <a
+                  href="/medical-reports"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="View clinical diagnostic reports"
                 >
-                  <span className="material-symbols-outlined text-sm">delete</span>
-                  <span>Delete Patient</span>
-                </button>
+                  <span className="material-symbols-outlined text-sm">description</span>
+                  <span>Clinical Reports</span>
+                </a>
               </div>
             </div>
           ))}
         </div>
       )}
-
-      {/* Delete Confirmation Modal */}
-      <ConfirmDialog
-        isOpen={!!deletePatient}
-        onClose={() => setDeletePatient(null)}
-        onConfirm={handleDelete}
-        title="Remove Patient Record"
-        message={`Are you sure you want to remove ${deletePatient?.fullName} (${deletePatient?.patientCode})? If active medical or financial records exist, the patient will be safely deactivated.`}
-        confirmText={deleting ? 'Removing...' : 'Yes, Remove Patient'}
-        danger={true}
-      />
     </div>
   );
 };
