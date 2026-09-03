@@ -628,7 +628,7 @@ const Patients = () => {
         onClose={() => setDeleteConfirm(null)}
         onConfirm={handleDelete}
         title="Delete Patient Record?"
-        message={`Are you sure you want to permanently remove ${deleteConfirm?.fullName} (${deleteConfirm?.patientCode}) from the clinical system?`}
+        message={`Are you sure you want to permanently remove ${deleteConfirm?.fullName} (${deleteConfirm?.patientCode}) from the clinical system? Note: In accordance with clinical governance, all active appointments must be cancelled/completed, bed admissions discharged, and medical reports finalized before deletion is permitted.`}
         confirmText="Confirm Delete"
         loading={submitting}
       />

@@ -1,13 +1,11 @@
 package com.vitalsync.hms.service.impl;
 
 import com.vitalsync.hms.dto.PatientDto;
-import com.vitalsync.hms.entity.Patient;
+import com.vitalsync.hms.entity.*;
 import com.vitalsync.hms.exception.BadRequestException;
 import com.vitalsync.hms.exception.ResourceNotFoundException;
-import com.vitalsync.hms.repository.AppointmentRepository;
-import com.vitalsync.hms.repository.BillRepository;
-import com.vitalsync.hms.repository.PatientRepository;
-import com.vitalsync.hms.repository.PrescriptionRepository;
+import com.vitalsync.hms.repository.*;
+import com.vitalsync.hms.service.AuditLogService;
 import com.vitalsync.hms.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +28,11 @@ public class PatientServiceImpl implements PatientService {
     private final AppointmentRepository appointmentRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final BillRepository billRepository;
+    private final BedReservationRepository bedReservationRepository;
+    private final MedicalReportRepository medicalReportRepository;
+    private final EmergencyRequestRepository emergencyRequestRepository;
+    private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     @Override
     public List<PatientDto> getAll(String search, String status, String gender, String bloodGroup) {
@@ -142,17 +145,108 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + id));
 
-        // If linked records exist, safely deactivate instead of breaking database foreign keys
-        boolean hasAppointments = appointmentRepository.existsByPatientId(id);
-        boolean hasPrescriptions = prescriptionRepository.existsByPatientId(id);
-        boolean hasBills = billRepository.existsByPatientId(id);
+        // 1. Clinical Lock: Active appointments check
+        // A patient record CANNOT be deleted if there are any appointments that are not cancelled or completed
+        List<Appointment> appointments = appointmentRepository.findByPatientId(id);
+        long uncancelledAppointments = appointments.stream()
+                .filter(a -> a.getStatus() != null &&
+                        !a.getStatus().equalsIgnoreCase("Cancelled") &&
+                        !a.getStatus().equalsIgnoreCase("Completed"))
+                .count();
 
-        if (hasAppointments || hasPrescriptions || hasBills) {
-            patient.setStatus("Inactive");
-            patientRepository.save(patient);
-        } else {
-            patientRepository.delete(patient);
+        if (uncancelledAppointments > 0) {
+            throw new BadRequestException("Cannot delete patient record: Patient has " + uncancelledAppointments +
+                    " active appointment(s). All appointments must be cancelled or completed before deleting this record.");
         }
+
+        // 2. Clinical Lock: Bed reservations / Inpatient admission check
+        List<BedReservation> bedReservations = bedReservationRepository.findByPatientId(id);
+        long activeBeds = bedReservations.stream()
+                .filter(b -> b.getStatus() != null &&
+                        (b.getStatus().equalsIgnoreCase("CONFIRMED") ||
+                         b.getStatus().equalsIgnoreCase("PENDING") ||
+                         b.getStatus().equalsIgnoreCase("ADMITTED")))
+                .count();
+
+        if (activeBeds > 0) {
+            throw new BadRequestException("Cannot delete patient record: Patient currently has an active bed reservation. " +
+                    "Please discharge the patient and cancel the bed reservation before deleting this record.");
+        }
+
+        // 3. Clinical Lock: Pending or unfinalized medical diagnostic reports check
+        List<MedicalReport> medicalReports = medicalReportRepository.findByPatientId(id);
+        long pendingReports = medicalReports.stream()
+                .filter(r -> r.getStatus() != null &&
+                        !r.getStatus().equalsIgnoreCase("Final") &&
+                        !r.getStatus().equalsIgnoreCase("Completed"))
+                .count();
+
+        if (pendingReports > 0) {
+            throw new BadRequestException("Cannot delete patient record: Patient has " + pendingReports +
+                    " medical report(s) that are still pending. Final medical reports must be generated before deleting this record.");
+        }
+
+        // --- All Clinical Safety Checks Passed! Proceed with Clean Deletion ---
+        // Clean up all child entities to prevent foreign key referential integrity constraint violations:
+
+        // A. Delete Bed Reservations
+        if (!bedReservations.isEmpty()) {
+            bedReservationRepository.deleteAll(bedReservations);
+        }
+
+        // B. Delete Appointments
+        if (!appointments.isEmpty()) {
+            appointmentRepository.deleteAll(appointments);
+        }
+
+        // C. Delete Prescriptions
+        List<Prescription> prescriptions = prescriptionRepository.findByPatientId(id);
+        if (!prescriptions.isEmpty()) {
+            prescriptionRepository.deleteAll(prescriptions);
+        }
+
+        // D. Delete Medical Reports
+        if (!medicalReports.isEmpty()) {
+            medicalReportRepository.deleteAll(medicalReports);
+        }
+
+        // E. Delete Bills
+        List<Bill> bills = billRepository.findByPatientId(id);
+        if (!bills.isEmpty()) {
+            billRepository.deleteAll(bills);
+        }
+
+        // F. Unlink Emergency Requests
+        List<EmergencyRequest> emergencies = emergencyRequestRepository.findByPatientIdOrderByCreatedAtDesc(id);
+        for (EmergencyRequest er : emergencies) {
+            er.setPatient(null);
+            emergencyRequestRepository.save(er);
+        }
+
+        // G. Unlink / Clean up Patient User account if registered
+        User linkedUser = patient.getUser();
+        if (linkedUser != null) {
+            patient.setUser(null);
+            patientRepository.save(patient);
+            if ("PATIENT".equalsIgnoreCase(linkedUser.getRole())) {
+                userRepository.delete(linkedUser);
+            }
+        }
+
+        // H. Delete Patient record
+        patientRepository.delete(patient);
+
+        // I. Audit Log
+        String adminUsername = "ADMIN";
+        try {
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                adminUsername = auth.getName();
+            }
+        } catch (Exception ignored) {}
+
+        auditLogService.logAction(adminUsername, "ADMIN", "DELETE_PATIENT", "Patient", id.toString(),
+                "Permanently removed patient " + patient.getFullName() + " (" + patient.getPatientCode() + ") after verifying clinical locks.", null);
     }
 
     private PatientDto mapToDto(Patient p) {
