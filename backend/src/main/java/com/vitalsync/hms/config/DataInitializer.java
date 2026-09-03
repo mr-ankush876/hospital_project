@@ -63,9 +63,7 @@ public class DataInitializer implements CommandLineRunner {
         if (doctorRepository.count() == 0) {
             seedDoctors();
         }
-        if (bedRepository.count() == 0) {
-            seedBeds();
-        }
+        seedBeds();
 
         // 3. Demo transaction data guard: NEVER seed demo business transactions in production (strictly false by default)
         if (seedDataEnabled) {

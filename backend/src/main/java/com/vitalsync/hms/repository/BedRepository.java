@@ -19,13 +19,15 @@ public interface BedRepository extends JpaRepository<Bed, Long> {
     List<Bed> findByStatus(String status);
     List<Bed> findByBedType(String bedType);
 
-    @Query("SELECT b FROM Bed b WHERE " +
+    @Query("SELECT b FROM Bed b LEFT JOIN b.currentPatient p WHERE " +
            "(:departmentId IS NULL OR b.department.id = :departmentId) " +
            "AND (:bedType IS NULL OR b.bedType = :bedType) " +
            "AND (:status IS NULL OR b.status = :status) " +
-           "AND (:search IS NULL OR LOWER(b.bedNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "AND (:search IS NULL OR (" +
+           "LOWER(b.bedNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(b.department.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(b.currentPatient.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "OR (p IS NOT NULL AND LOWER(p.fullName) LIKE LOWER(CONCAT('%', :search, '%')))" +
+           ")) " +
            "ORDER BY b.bedNumber ASC")
     List<Bed> searchBeds(
             @Param("departmentId") Long departmentId,
@@ -33,13 +35,15 @@ public interface BedRepository extends JpaRepository<Bed, Long> {
             @Param("status") String status,
             @Param("search") String search);
 
-    @Query("SELECT b FROM Bed b WHERE " +
+    @Query("SELECT b FROM Bed b LEFT JOIN b.currentPatient p WHERE " +
            "(:departmentId IS NULL OR b.department.id = :departmentId) " +
            "AND (:bedType IS NULL OR b.bedType = :bedType) " +
            "AND (:status IS NULL OR b.status = :status) " +
-           "AND (:search IS NULL OR LOWER(b.bedNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "AND (:search IS NULL OR (" +
+           "LOWER(b.bedNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(b.department.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(b.currentPatient.fullName) LIKE LOWER(CONCAT('%', :search, '%')))")
+           "OR (p IS NOT NULL AND LOWER(p.fullName) LIKE LOWER(CONCAT('%', :search, '%')))" +
+           "))")
     Page<Bed> searchBedsPaged(
             @Param("departmentId") Long departmentId,
             @Param("bedType") String bedType,

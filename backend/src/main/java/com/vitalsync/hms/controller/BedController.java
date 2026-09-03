@@ -22,6 +22,12 @@ import java.util.Map;
 public class BedController {
 
     private final BedService bedService;
+    private final com.vitalsync.hms.service.PublicService publicService;
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getBedStats() {
+        return ResponseEntity.ok(publicService.getPublicBedAvailability());
+    }
 
     @GetMapping
     public ResponseEntity<?> getAllBeds(
