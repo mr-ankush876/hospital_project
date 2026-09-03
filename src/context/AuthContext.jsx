@@ -60,54 +60,13 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       setLoading(false);
 
-      const isTimeout =
-        err?.code === 'ECONNABORTED' ||
-        err?.message?.toLowerCase().includes('timeout');
-      const isNetworkError =
-        err?.message === 'Network Error' ||
-        err?.code === 'ERR_NETWORK';
-
-      // Resilient Master Admin Session Fallback:
-      // If the backend is offline or timing out (e.g. Render sleeping on Vercel),
-      // and the user provided valid administrator credentials, log in directly without error!
-      const normalizedUser = (username || '').trim().toLowerCase();
-      const isAdminUser = ['ankush_876', 'admin', 'ankush', 'ankush@vitalsync.com'].includes(normalizedUser);
-      const isAdminPass = ['Ankush143@', 'ankush143@', 'password123'].includes(password);
-
-      if ((isTimeout || isNetworkError || !err?.response) && isAdminUser && isAdminPass) {
-        const fallbackAdmin = {
-          id: 1,
-          username: 'ankush_876',
-          email: 'ankush@vitalsync.com',
-          fullName: 'Dr. Ankush singh (Administrator)',
-          role: 'ADMIN',
-          status: 'ACTIVE',
-          phone: '+919876543210'
-        };
-        const fallbackToken = 'vitalsync_admin_session_' + Date.now();
-        setUser(fallbackAdmin);
-        setToken(fallbackToken);
-        localStorage.setItem('vitalsync_token', fallbackToken);
-        localStorage.setItem('vitalsync_user', JSON.stringify(fallbackAdmin));
-        return { success: true, role: 'ADMIN', user: fallbackAdmin, isOfflineMode: true };
-      }
-
       const errorMessage =
-        (err?.response?.status === 401
-          ? 'Incorrect username or password. Please verify your credentials (check uppercase/lowercase).'
-          : null) ||
-        (err?.response?.status === 403
-          ? 'Account is deactivated or access is denied.'
-          : null) ||
-        (isTimeout
-          ? 'Backend connection timed out. The cloud backend may be waking up or offline. Please wait 30 seconds and retry.'
-          : null) ||
-        (isNetworkError
-          ? 'Cannot reach backend server. If testing locally, ensure backend is running on port 8080.'
-          : null) ||
         err?.response?.data?.message ||
         err?.response?.data?.error ||
-        'Login failed. Please verify your credentials and server connection.';
+        (err?.response?.status === 401 ? 'Invalid username or password' : null) ||
+        (err?.response?.status === 403 ? 'Account is not active or access is denied' : null) ||
+        (err?.message === 'Network Error' ? 'Cannot connect to backend server. Is it running on port 8080?' : null) ||
+        'Login failed. Please try again.';
 
       setError(errorMessage);
       return { success: false, error: errorMessage };
