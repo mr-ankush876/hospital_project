@@ -84,7 +84,11 @@ public class PatientServiceImpl implements PatientService {
         patient.setEmail(dto.getEmail());
         patient.setAddress(dto.getAddress());
                 if (dto.getEmergencyContact() != null && !dto.getEmergencyContact().trim().isEmpty()) {
-            patient.setEmergencyContact(phoneValidationService.validateAndNormalize(dto.getEmergencyContact()));
+            try {
+                patient.setEmergencyContact(phoneValidationService.validateAndNormalize(dto.getEmergencyContact()));
+            } catch (Exception ignored) {
+                patient.setEmergencyContact(dto.getEmergencyContact().trim());
+            }
         } else {
             patient.setEmergencyContact(null);
         }

@@ -126,6 +126,16 @@ public class AuthServiceImpl implements AuthService {
         int age = request.getAge() != null ? request.getAge() : Period.between(dob, LocalDate.now()).getYears();
         if (age <= 0) age = 25;
 
+        String validatedPhone = phoneValidationService.validateAndNormalize(request.getPhone());
+        String validatedEmergencyContact = validatedPhone;
+        if (request.getEmergencyContact() != null && !request.getEmergencyContact().trim().isEmpty()) {
+            try {
+                validatedEmergencyContact = phoneValidationService.validateAndNormalize(request.getEmergencyContact());
+            } catch (Exception ignored) {
+                validatedEmergencyContact = validatedPhone;
+            }
+        }
+
         Patient patient = Patient.builder()
                 .patientCode(patientCode)
                 .user(savedUser)
@@ -134,10 +144,10 @@ public class AuthServiceImpl implements AuthService {
                 .age(age)
                 .gender(request.getGender() != null ? request.getGender() : "Not Specified")
                 .bloodGroup(request.getBloodGroup() != null ? request.getBloodGroup() : "O+")
-                .phone(phoneValidationService.validateAndNormalize(request.getPhone()))
+                .phone(validatedPhone)
                 .email(request.getEmail())
-                .address(request.getAddress() != null ? request.getAddress() : "Hospital Region")
-                .emergencyContact(request.getEmergencyContact() != null && !request.getEmergencyContact().trim().isEmpty() ? phoneValidationService.validateAndNormalize(request.getEmergencyContact()) : phoneValidationService.validateAndNormalize(request.getPhone()))
+                .address(request.getAddress() != null && !request.getAddress().trim().isEmpty() ? request.getAddress() : "Hospital Region")
+                .emergencyContact(validatedEmergencyContact)
                 .medicalHistory(request.getMedicalHistory())
                 .allergies(request.getAllergies())
                 .status("Active")
