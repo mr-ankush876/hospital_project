@@ -10,4 +10,4 @@ FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/target/app.jar app.jar
 EXPOSE 8080
-CMD ["sh", "-c", "exec java -jar app.jar --server.port=${PORT:-8080} --spring.profiles.active=dev"]
+CMD ["sh", "-c", "exec java -jar app.jar --server.port=${PORT:-8080} --spring.profiles.active=${SPRING_PROFILES_ACTIVE:-dev}"]
