@@ -9,6 +9,7 @@ import ErrorState from '../components/common/ErrorState';
 import { TableSkeleton } from '../components/common/Loader';
 import Pagination from '../components/common/Pagination';
 import VitalSyncLogo from '../components/common/VitalSyncLogo';
+import PrintPortal from '../components/common/PrintPortal';
 
 const Prescriptions = () => {
   const { user, hasRole } = useAuth();
@@ -698,107 +699,103 @@ const Prescriptions = () => {
         loading={submitting}
       />
 
-      {/* Hidden Printable Area for Browser Printing */}
+      {/* Printable Area rendered via PrintPortal */}
       {printTarget && (
-        <div className="hidden print:block printable-area p-8 max-w-3xl mx-auto bg-white text-black font-sans">
-          {/* Header */}
-          <div className="flex justify-between items-start border-b-2 border-primary pb-4 mb-6">
-            <div className="flex items-center gap-3">
-              <VitalSyncLogo className="w-12 h-12" showText={true} />
+        <PrintPortal>
+          <div className="printable-area p-6 max-w-3xl mx-auto bg-white text-black font-sans">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b-2 border-primary pb-4 mb-6">
+              <div className="flex items-center gap-3">
+                <VitalSyncLogo className="w-12 h-12" showText={true} />
+              </div>
+              <div className="text-right text-xs">
+                <p className="font-bold text-sm">VitalSync Multi-Specialty Hospital</p>
+                <p>Medical Center Road, Healthcare City</p>
+                <p>Phone: +91 (800) 123-4567 | Reg: VS-HOSP-2026</p>
+              </div>
             </div>
-            <div className="text-right text-xs">
-              <p className="font-bold text-sm">VitalSync Multi-Specialty Hospital</p>
-              <p>Medical Center Road, Healthcare City</p>
-              <p>Phone: +91 (800) 123-4567 | Reg: VS-HOSP-2026</p>
-            </div>
-          </div>
 
-          {/* Rx Code & Date */}
-          <div className="flex justify-between items-center bg-gray-100 p-3 rounded mb-4 text-xs font-semibold">
-            <span>Prescription No: <strong>{printTarget.prescriptionCode}</strong></span>
-            <span>Date: <strong>{printTarget.prescriptionDate}</strong></span>
-          </div>
-
-          {/* Patient and Doctor Cards */}
-          <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
-            <div className="border border-gray-300 p-3 rounded">
-              <p className="font-bold text-gray-700 uppercase mb-1">Patient Information</p>
-              <p className="font-bold text-sm">{printTarget.patient?.fullName || printTarget.patientName}</p>
-              <p>ID: {printTarget.patient?.patientCode} | Age: {printTarget.patient?.age} Yrs | Gender: {printTarget.patient?.gender}</p>
-              <p>Blood Group: {printTarget.patient?.bloodGroup} | Phone: {printTarget.patient?.phone}</p>
+            {/* Rx Code & Date */}
+            <div className="flex justify-between items-center bg-gray-100 p-3 rounded mb-4 text-xs font-semibold">
+              <span>Prescription No: <strong>{printTarget.prescriptionCode}</strong></span>
+              <span>Date: <strong>{printTarget.prescriptionDate}</strong></span>
             </div>
-            <div className="border border-gray-300 p-3 rounded">
-              <p className="font-bold text-gray-700 uppercase mb-1">Attending Physician</p>
-              <p className="font-bold text-sm">{printTarget.doctor?.fullName || printTarget.doctorName}</p>
-              <p>Specialization: {printTarget.doctor?.specialization}</p>
-              <p>Qualification: {printTarget.doctor?.qualification}</p>
-            </div>
-          </div>
 
-          {/* Diagnosis */}
-          <div className="mb-6 text-xs">
-            <p className="font-bold uppercase text-gray-700 mb-1">Clinical Diagnosis</p>
-            <p className="p-2 border border-gray-300 rounded font-semibold text-gray-900 bg-gray-50">
-              {printTarget.diagnosis}
-            </p>
-          </div>
-
-          {/* Rx Symbol & Medication Table */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl font-serif font-bold text-primary">℞</span>
-              <span className="font-bold text-xs uppercase tracking-wider text-gray-700">Medication Schedule</span>
+            {/* Patient and Doctor Cards */}
+            <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
+              <div className="border border-gray-300 p-3 rounded">
+                <p className="font-bold text-gray-700 uppercase mb-1">Patient Information</p>
+                <p className="font-bold text-sm">{printTarget.patient?.fullName || printTarget.patientName}</p>
+                <p>ID: {printTarget.patient?.patientCode} | Age: {printTarget.patient?.age} Yrs | Gender: {printTarget.patient?.gender}</p>
+                <p>Blood Group: {printTarget.patient?.bloodGroup} | Phone: {printTarget.patient?.phone}</p>
+              </div>
+              <div className="border border-gray-300 p-3 rounded">
+                <p className="font-bold text-gray-700 uppercase mb-1">Consulting Physician</p>
+                <p className="font-bold text-sm">{printTarget.doctor?.fullName || printTarget.doctorName}</p>
+                <p>{printTarget.doctor?.specialization}</p>
+                <p>{printTarget.doctor?.qualification || 'Consultant Specialist'}</p>
+              </div>
             </div>
-            <table className="w-full border-collapse border border-gray-300 text-xs">
+
+            {/* Symptoms & Diagnosis */}
+            <div className="mb-6 text-xs">
+              {printTarget.symptoms && (
+                <div className="mb-2">
+                  <span className="font-bold text-gray-700">Symptoms: </span>
+                  <span>{printTarget.symptoms}</span>
+                </div>
+              )}
+              <div>
+                <span className="font-bold text-primary">Diagnosis: </span>
+                <span className="font-bold text-sm">{printTarget.diagnosis}</span>
+              </div>
+            </div>
+
+            {/* Medicines Rx Table */}
+            <table className="w-full text-xs text-left mb-6 border-collapse border border-gray-300">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="border border-gray-300 p-2 text-left">#</th>
-                  <th className="border border-gray-300 p-2 text-left">Medicine Name</th>
-                  <th className="border border-gray-300 p-2 text-left">Dosage</th>
-                  <th className="border border-gray-300 p-2 text-left">Frequency</th>
-                  <th className="border border-gray-300 p-2 text-left">Duration</th>
+                  <th className="border border-gray-300 p-2">#</th>
+                  <th className="border border-gray-300 p-2">Medicine / Generic</th>
+                  <th className="border border-gray-300 p-2">Dosage</th>
+                  <th className="border border-gray-300 p-2">Frequency</th>
+                  <th className="border border-gray-300 p-2">Duration</th>
                 </tr>
               </thead>
               <tbody>
-                {printTarget.medicines?.map((m, idx) => (
+                {printTarget.medicines?.map((med, idx) => (
                   <tr key={idx} className="border border-gray-300">
                     <td className="border border-gray-300 p-2 font-mono">{idx + 1}</td>
-                    <td className="border border-gray-300 p-2 font-bold">{m.medicineName}</td>
-                    <td className="border border-gray-300 p-2">{m.dosage}</td>
-                    <td className="border border-gray-300 p-2">{m.frequency}</td>
-                    <td className="border border-gray-300 p-2">{m.duration}</td>
+                    <td className="border border-gray-300 p-2 font-bold">{med.medicineName}</td>
+                    <td className="border border-gray-300 p-2">{med.dosage}</td>
+                    <td className="border border-gray-300 p-2">{med.frequency}</td>
+                    <td className="border border-gray-300 p-2">{med.duration}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
 
-          {/* Instructions & Follow-up */}
-          <div className="grid grid-cols-2 gap-4 mb-12 text-xs">
-            <div>
-              <p className="font-bold uppercase text-gray-700 mb-1">Advice & Instructions</p>
-              <p className="p-2 border border-gray-300 rounded min-h-[50px]">{printTarget.instructions || 'Take as directed.'}</p>
-            </div>
-            <div>
-              <p className="font-bold uppercase text-gray-700 mb-1">Next Follow-up</p>
-              <p className="p-2 border border-gray-300 rounded min-h-[50px] font-semibold">
-                {printTarget.followUpDate || 'As needed / Upon completion of course'}
-              </p>
-            </div>
-          </div>
+            {/* Instructions */}
+            {printTarget.instructions && (
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded mb-8 text-xs">
+                <p className="font-bold text-gray-700 mb-1">Dietary & Intake Instructions:</p>
+                <p>{printTarget.instructions}</p>
+              </div>
+            )}
 
-          {/* Signatures */}
-          <div className="flex justify-between items-end pt-12 border-t border-gray-300 text-xs">
-            <div>
-              <p className="text-gray-500">System generated on {new Date().toLocaleString()}</p>
-            </div>
-            <div className="text-center">
-              <div className="w-48 border-b border-gray-500 mb-1" />
-              <p className="font-bold">{printTarget.doctor?.fullName || printTarget.doctorName}</p>
-              <p className="text-gray-500">Doctor Signature & Stamp</p>
+            {/* Signatures */}
+            <div className="flex justify-between items-end pt-12 border-t border-gray-300 text-xs">
+              <div>
+                <p className="text-gray-500">System generated on {new Date().toLocaleString()}</p>
+              </div>
+              <div className="text-center">
+                <div className="w-48 border-b border-gray-500 mb-1" />
+                <p className="font-bold">{printTarget.doctor?.fullName || printTarget.doctorName}</p>
+                <p className="text-gray-500">Doctor Signature & Stamp</p>
+              </div>
             </div>
           </div>
-        </div>
+        </PrintPortal>
       )}
     </div>
   );

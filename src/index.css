@@ -23,25 +23,56 @@
   }
 }
 
-/* Print CSS for High-Quality Browser Printing (Invoices & Prescriptions) */
+/* Screen mode: hide print-root completely */
+#print-root {
+  display: none;
+}
+
+/* Print CSS for High-Quality Browser Printing (Medical Reports, Prescriptions & Invoices) */
 @media print {
-  body {
-    background-color: #ffffff !important;
-    color: #000000 !important;
+  @page {
+    size: A4 portrait;
+    margin: 6mm 10mm 6mm 10mm;
   }
 
-  nav, header, aside, .no-print, button {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    width: 100% !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely hide regular web application, background pages, sidebars, headers, and modal overlays */
+  #root,
+  nav,
+  header,
+  aside,
+  footer,
+  .no-print,
+  button,
+  .fixed {
     display: none !important;
   }
 
-  main {
+  /* Show ONLY the isolated print portal container */
+  #print-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
   }
 
-  .print-only {
-    display: block !important;
+  #print-root * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .printable-area {
@@ -49,6 +80,16 @@
     border: none !important;
     width: 100% !important;
     max-width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
+    display: block !important;
+  }
+
+  /* Avoid page breaks inside sections to guarantee exact 1-page output */
+  .page-break-inside-avoid,
+  .printable-area > * {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 }
+

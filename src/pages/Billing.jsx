@@ -10,6 +10,7 @@ import ErrorState from '../components/common/ErrorState';
 import { TableSkeleton } from '../components/common/Loader';
 import Pagination from '../components/common/Pagination';
 import VitalSyncLogo from '../components/common/VitalSyncLogo';
+import PrintPortal from '../components/common/PrintPortal';
 
 const formatINR = (val) => {
   const num = Number(val) || 0;
@@ -744,113 +745,130 @@ const Billing = () => {
         loading={submitting}
       />
 
-      {/* Hidden Printable Area for Invoice */}
+      {/* Printable Area for Invoice rendered via PrintPortal */}
       {printTarget && (
-        <div className="hidden print:block printable-area p-8 max-w-3xl mx-auto bg-white text-black font-sans">
-          {/* Header */}
-          <div className="flex justify-between items-start border-b-2 border-primary pb-4 mb-6">
-            <div className="flex items-center gap-3">
-              <VitalSyncLogo className="w-12 h-12" showText={true} />
+        <PrintPortal>
+          <div className="printable-area p-6 max-w-3xl mx-auto bg-white text-black font-sans">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b-2 border-primary pb-4 mb-6">
+              <div className="flex items-center gap-3">
+                <VitalSyncLogo className="w-12 h-12" showText={true} />
+              </div>
+              <div className="text-right text-xs">
+                <h2 className="text-base font-bold text-primary">TAX INVOICE</h2>
+                <p className="font-bold">VitalSync Multi-Specialty Hospital</p>
+                <p>Healthcare Complex, MG Road</p>
+                <p>GSTIN: 27AAAAA0000A1Z5</p>
+              </div>
             </div>
-            <div className="text-right text-xs">
-              <h2 className="text-base font-bold text-primary">TAX INVOICE</h2>
-              <p className="font-bold">VitalSync Multi-Specialty Hospital</p>
-              <p>Healthcare Complex, MG Road</p>
-              <p>GSTIN: 27AAAAA0000A1Z5</p>
-            </div>
-          </div>
 
-          {/* Invoice Meta */}
-          <div className="grid grid-cols-2 gap-6 bg-gray-50 p-4 rounded mb-6 text-xs border border-gray-200">
-            <div>
-              <p className="text-gray-500 uppercase font-semibold">Billed To (Patient):</p>
-              <p className="font-bold text-sm mt-0.5">{printTarget.patient?.fullName || printTarget.patientName}</p>
-              <p>Patient ID: {printTarget.patient?.patientCode}</p>
-              <p>Phone: {printTarget.patient?.phone}</p>
-              <p>Address: {printTarget.patient?.address || 'N/A'}</p>
+            {/* Invoice meta */}
+            <div className="flex justify-between items-center bg-gray-100 p-3 rounded mb-6 text-xs font-semibold">
+              <div>
+                <span>Invoice No: </span>
+                <strong className="text-primary font-mono">{printTarget.billCode}</strong>
+              </div>
+              <div>
+                <span>Date: </span>
+                <strong>{printTarget.billDate}</strong>
+              </div>
+              <div>
+                <span>Status: </span>
+                <strong className={printTarget.paymentStatus === 'Paid' ? 'text-green-600' : 'text-amber-600'}>
+                  {printTarget.paymentStatus?.toUpperCase()}
+                </strong>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-gray-500 uppercase font-semibold">Invoice Details:</p>
-              <p className="font-bold text-sm mt-0.5">#{printTarget.billCode}</p>
-              <p>Date: {printTarget.billDate}</p>
-              <p>Payment Method: {printTarget.paymentMethod || 'Cash'}</p>
-              <p>Status: <strong className="uppercase">{printTarget.paymentStatus}</strong></p>
-            </div>
-          </div>
 
-          {/* Line items table */}
-          <table className="w-full border-collapse border border-gray-300 text-xs mb-6">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border border-gray-300 p-2.5 text-left">#</th>
-                <th className="border border-gray-300 p-2.5 text-left">Item Description</th>
-                <th className="border border-gray-300 p-2.5 text-right">Amount (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border border-gray-300">
-                <td className="border border-gray-300 p-2.5 font-mono">1</td>
-                <td className="border border-gray-300 p-2.5">
-                  Consultation Fee ({printTarget.doctor?.fullName || 'Attending Physician'})
-                </td>
-                <td className="border border-gray-300 p-2.5 text-right font-mono">
-                  {formatINR(printTarget.consultationFee)}
-                </td>
-              </tr>
-              <tr className="border border-gray-300">
-                <td className="border border-gray-300 p-2.5 font-mono">2</td>
-                <td className="border border-gray-300 p-2.5">Pharmacy / Medicines Charges</td>
-                <td className="border border-gray-300 p-2.5 text-right font-mono">
-                  {formatINR(printTarget.medicineCharges)}
-                </td>
-              </tr>
-              {Number(printTarget.otherCharges) > 0 && (
+            {/* Patient & Doctor details */}
+            <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
+              <div className="border border-gray-300 p-3 rounded">
+                <p className="font-bold text-gray-700 uppercase mb-1">Billed To (Patient):</p>
+                <p className="font-bold text-sm">{printTarget.patient?.fullName || printTarget.patientName}</p>
+                <p className="font-mono">ID: {printTarget.patient?.patientCode || 'PT-N/A'}</p>
+                <p>Phone: {printTarget.patient?.phone || 'N/A'}</p>
+                <p>Address: {printTarget.patient?.address || 'Healthcare City'}</p>
+              </div>
+              <div className="border border-gray-300 p-3 rounded">
+                <p className="font-bold text-gray-700 uppercase mb-1">Consulting Specialist:</p>
+                <p className="font-bold text-sm">{printTarget.doctor?.fullName || printTarget.doctorName || 'General Staff'}</p>
+                <p>{printTarget.doctor?.specialization || 'Clinical Department'}</p>
+                <p>Payment Mode: <strong>{printTarget.paymentMethod}</strong></p>
+              </div>
+            </div>
+
+            {/* Line items table */}
+            <table className="w-full text-xs text-left mb-6 border-collapse border border-gray-300">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border border-gray-300 p-2">#</th>
+                  <th className="border border-gray-300 p-2">Description / Service</th>
+                  <th className="border border-gray-300 p-2 text-right">Amount (INR)</th>
+                </tr>
+              </thead>
+              <tbody>
                 <tr className="border border-gray-300">
-                  <td className="border border-gray-300 p-2.5 font-mono">3</td>
-                  <td className="border border-gray-300 p-2.5">Diagnostics / Lab / Other Charges</td>
+                  <td className="border border-gray-300 p-2.5 font-mono">1</td>
+                  <td className="border border-gray-300 p-2.5">Doctor Consultation & Clinical Assessment</td>
                   <td className="border border-gray-300 p-2.5 text-right font-mono">
-                    {formatINR(printTarget.otherCharges)}
+                    {formatINR(printTarget.consultationFee)}
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
+                <tr className="border border-gray-300">
+                  <td className="border border-gray-300 p-2.5 font-mono">2</td>
+                  <td className="border border-gray-300 p-2.5">Pharmacy / Medicines Charges</td>
+                  <td className="border border-gray-300 p-2.5 text-right font-mono">
+                    {formatINR(printTarget.medicineCharges)}
+                  </td>
+                </tr>
+                {Number(printTarget.otherCharges) > 0 && (
+                  <tr className="border border-gray-300">
+                    <td className="border border-gray-300 p-2.5 font-mono">3</td>
+                    <td className="border border-gray-300 p-2.5">Diagnostics / Lab / Other Charges</td>
+                    <td className="border border-gray-300 p-2.5 text-right font-mono">
+                      {formatINR(printTarget.otherCharges)}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
 
-          {/* Financial summary */}
-          <div className="flex justify-end mb-12">
-            <div className="w-64 space-y-1.5 text-xs border border-gray-300 p-3 rounded bg-gray-50">
-              {Number(printTarget.discount) > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Discount:</span>
-                  <span className="font-mono">- {formatINR(printTarget.discount)}</span>
+            {/* Financial summary */}
+            <div className="flex justify-end mb-12">
+              <div className="w-64 space-y-1.5 text-xs border border-gray-300 p-3 rounded bg-gray-50">
+                {Number(printTarget.discount) > 0 && (
+                  <div className="flex justify-between text-red-600">
+                    <span>Discount:</span>
+                    <span className="font-mono">- {formatINR(printTarget.discount)}</span>
+                  </div>
+                )}
+                {Number(printTarget.tax) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Tax / GST:</span>
+                    <span className="font-mono">+ {formatINR(printTarget.tax)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-sm border-t border-gray-300 pt-2 text-black">
+                  <span>Grand Total:</span>
+                  <span className="font-mono">{formatINR(printTarget.totalAmount)}</span>
                 </div>
-              )}
-              {Number(printTarget.tax) > 0 && (
-                <div className="flex justify-between">
-                  <span>Tax / GST:</span>
-                  <span className="font-mono">+ {formatINR(printTarget.tax)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-sm border-t border-gray-300 pt-2 text-black">
-                <span>Grand Total:</span>
-                <span className="font-mono">{formatINR(printTarget.totalAmount)}</span>
+              </div>
+            </div>
+
+            {/* Footer & Signature */}
+            <div className="flex justify-between items-end pt-12 border-t border-gray-300 text-xs">
+              <div>
+                <p className="font-bold">Thank you for choosing VitalSync Healthcare.</p>
+                <p className="text-gray-500">For billing queries: billing@vitalsync.com</p>
+              </div>
+              <div className="text-center">
+                <div className="w-48 border-b border-gray-500 mb-1" />
+                <p className="font-bold">Authorized Signatory</p>
+                <p className="text-gray-500">Accounts & Billing Dept</p>
               </div>
             </div>
           </div>
-
-          {/* Footer & Signature */}
-          <div className="flex justify-between items-end pt-12 border-t border-gray-300 text-xs">
-            <div>
-              <p className="font-bold">Thank you for choosing VitalSync Healthcare.</p>
-              <p className="text-gray-500">For billing queries: billing@vitalsync.com</p>
-            </div>
-            <div className="text-center">
-              <div className="w-48 border-b border-gray-500 mb-1" />
-              <p className="font-bold">Authorized Signatory</p>
-              <p className="text-gray-500">Accounts & Billing Dept</p>
-            </div>
-          </div>
-        </div>
+        </PrintPortal>
       )}
     </div>
   );

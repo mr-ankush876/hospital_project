@@ -4,11 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import StatusBadge from '../../components/common/StatusBadge';
 import Pagination from '../../components/common/Pagination';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 import VitalSyncLogo from '../../components/common/VitalSyncLogo';
+import PrintPortal from '../../components/common/PrintPortal';
 
 const MedicalReportsAdmin = () => {
   const { user, hasRole } = useAuth();
@@ -110,6 +110,15 @@ const MedicalReportsAdmin = () => {
     fetchData();
   }, []);
 
+  // Clear printTarget automatically after print dialog finishes
+  useEffect(() => {
+    const onAfterPrint = () => {
+      setPrintTarget(null);
+    };
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => window.removeEventListener('afterprint', onAfterPrint);
+  }, []);
+
   const openPublishModal = () => {
     setEditReport(null);
     setForm({
@@ -209,9 +218,10 @@ const MedicalReportsAdmin = () => {
 
   const handlePrint = (rep) => {
     setPrintTarget(rep);
+    // Allow DOM to render print target in portal before opening print preview
     setTimeout(() => {
       window.print();
-    }, 250);
+    }, 150);
   };
 
   // Filter logic
@@ -811,103 +821,109 @@ const MedicalReportsAdmin = () => {
         loading={submitting}
       />
 
-      {/* 4. Official Printable Report Area for Browser Printing */}
+      {/* 4. Official Printable Report Area rendered cleanly via isolated PrintPortal */}
       {printTarget && (
-        <div className="hidden print:block printable-area p-8 max-w-3xl mx-auto bg-white text-black font-sans">
-          {/* Header with Hospital Banner */}
-          <div className="flex justify-between items-start border-b-2 border-primary pb-4 mb-6">
-            <div className="flex items-center gap-3">
-              <VitalSyncLogo className="w-12 h-12" showText={true} />
-            </div>
-            <div className="text-right text-xs">
-              <p className="font-bold text-sm text-gray-900">VitalSync Multi-Specialty Hospital</p>
-              <p className="text-gray-600">Department of Pathology & Clinical Diagnostics</p>
-              <p className="text-gray-600">Medical Center Road, Healthcare City â€¢ Emergency: 108</p>
-              <p className="text-gray-500 text-[10px]">ISO 15189:2022 Certified Medical Laboratory</p>
-            </div>
-          </div>
-
-          {/* Report Code & Status */}
-          <div className="flex justify-between items-center bg-gray-100 p-3 rounded-lg mb-5 text-xs font-semibold">
-            <div>
-              <span>Report Code: </span>
-              <strong className="text-primary font-mono text-sm">{printTarget.reportCode}</strong>
-            </div>
-            <div>
-              <span>Status: </span>
-              <strong className="uppercase">{printTarget.status || 'FINAL'}</strong>
-            </div>
-            <div>
-              <span>Date: </span>
-              <strong>{printTarget.reportDate}</strong>
-            </div>
-          </div>
-
-          {/* Demographics Grid */}
-          <div className="grid grid-cols-2 gap-4 border border-gray-200 rounded-lg p-4 mb-5 text-xs">
-            <div>
-              <p className="text-gray-500 font-bold uppercase text-[10px]">Patient Name</p>
-              <p className="font-bold text-sm text-gray-900">{printTarget.patientName}</p>
-              <p className="text-gray-600 font-mono">Patient Code: {printTarget.patientCode}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 font-bold uppercase text-[10px]">Attending Consultant</p>
-              <p className="font-bold text-sm text-gray-900">{printTarget.doctorName || 'Staff Specialist'}</p>
-              <p className="text-gray-600">{printTarget.departmentName}</p>
-            </div>
-          </div>
-
-          {/* Test Type Header */}
-          <div className="bg-gray-50 border-l-4 border-primary p-3 rounded mb-5">
-            <p className="text-xs text-gray-500 uppercase font-bold">Investigation Requested</p>
-            <p className="font-bold text-sm text-gray-900">{printTarget.reportType}</p>
-          </div>
-
-          {/* Symptoms */}
-          {printTarget.symptoms && (
-            <div className="mb-4 text-xs">
-              <p className="font-bold text-gray-700 uppercase text-[10px]">Clinical Symptoms / Indication</p>
-              <p className="text-gray-800 mt-0.5">{printTarget.symptoms}</p>
-            </div>
-          )}
-
-          {/* Diagnosis */}
-          <div className="mb-5 text-xs">
-            <p className="font-bold text-primary uppercase text-[10px]">Diagnostic Impression / Conclusion</p>
-            <p className="font-bold text-sm text-gray-900 mt-0.5">{printTarget.diagnosis}</p>
-          </div>
-
-          {/* Detailed Results */}
-          {printTarget.testResults && (
-            <div className="mb-6">
-              <p className="font-bold text-gray-700 uppercase text-[10px] mb-1">Laboratory Findings & Measured Biomarkers</p>
-              <div className="bg-gray-50 border border-gray-200 rounded p-4 font-mono text-xs text-gray-900 whitespace-pre-wrap leading-relaxed">
-                {printTarget.testResults}
+        <PrintPortal>
+          <div className="printable-area p-5 max-w-2xl mx-auto bg-white text-black font-sans text-xs leading-tight">
+            {/* Header with Hospital Banner */}
+            <div className="flex justify-between items-center border-b-2 border-blue-800 pb-3 mb-3 page-break-inside-avoid">
+              <div className="flex items-center gap-2.5">
+                <VitalSyncLogo className="w-9 h-9 text-blue-800" showText={true} />
+              </div>
+              <div className="text-right text-[10px] leading-tight text-gray-700">
+                <p className="font-bold text-xs text-gray-900">VitalSync Multi-Specialty Hospital</p>
+                <p>Department of Pathology & Clinical Diagnostics</p>
+                <p>Medical Center Road, Healthcare City â€¢ Emergency: 108</p>
+                <p className="text-gray-500 text-[8px]">ISO 15189:2022 Certified Medical Laboratory</p>
               </div>
             </div>
-          )}
 
-          {/* Doctor Notes */}
-          {printTarget.doctorNotes && (
-            <div className="mb-8 text-xs bg-blue-50/50 border border-blue-100 rounded p-3">
-              <p className="font-bold text-blue-900 uppercase text-[10px]">Doctor Clinical Recommendations</p>
-              <p className="text-blue-950 mt-1">{printTarget.doctorNotes}</p>
+            {/* Reference & Status Bar */}
+            <div className="flex justify-between items-center bg-gray-100 px-3 py-1.5 rounded mb-2.5 text-[11px] page-break-inside-avoid">
+              <div>
+                <span className="text-gray-600 font-semibold">Report Code: </span>
+                <strong className="text-blue-900 font-mono">{printTarget.reportCode}</strong>
+              </div>
+              <div>
+                <span className="text-gray-600 font-semibold">Status: </span>
+                <span className="font-bold uppercase px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  {printTarget.status || 'FINAL'}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600 font-semibold">Date: </span>
+                <strong className="font-mono">{printTarget.reportDate}</strong>
+              </div>
             </div>
-          )}
 
-          {/* Signatures Footer */}
-          <div className="mt-12 pt-6 border-t border-gray-300 flex justify-between items-end text-xs">
-            <div className="text-[10px] text-gray-500 max-w-xs">
-              <p>This document is an authenticated clinical laboratory report generated via VitalSync HMS.</p>
-              <p className="mt-1">Electronically verified by Department of Pathology.</p>
+            {/* Patient & Doctor Demographics */}
+            <div className="grid grid-cols-2 gap-3 border border-gray-300 rounded p-2.5 mb-2.5 text-[11px] page-break-inside-avoid">
+              <div>
+                <p className="text-gray-500 font-bold uppercase text-[9px] tracking-wider">Patient Information</p>
+                <p className="font-bold text-xs text-gray-900">{printTarget.patientName}</p>
+                <p className="text-gray-600 font-mono text-[10px]">Patient ID: {printTarget.patientCode}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-bold uppercase text-[9px] tracking-wider">Attending Consultant</p>
+                <p className="font-bold text-xs text-gray-900">{printTarget.doctorName || 'Staff Specialist'}</p>
+                <p className="text-gray-600 text-[10px]">{printTarget.departmentName}</p>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="w-44 border-b border-gray-400 mb-1" />
-              <p className="font-bold text-gray-900">{printTarget.doctorName || 'Authorized Pathologist'}</p>
-              <p className="text-[10px] text-gray-500">Consultant In-Charge</p>
+
+            {/* Investigation Name */}
+            <div className="bg-blue-50/70 border-l-4 border-blue-800 px-3 py-1.5 rounded mb-2.5 page-break-inside-avoid">
+              <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Diagnostic Investigation Requested</p>
+              <p className="font-bold text-xs text-gray-900">{printTarget.reportType}</p>
+            </div>
+
+            {/* Symptoms */}
+            {printTarget.symptoms && (
+              <div className="mb-2 text-[11px] page-break-inside-avoid">
+                <p className="font-bold text-gray-700 uppercase text-[9px] tracking-wider">Clinical Indications / Symptoms</p>
+                <p className="text-gray-900 mt-0.5">{printTarget.symptoms}</p>
+              </div>
+            )}
+
+            {/* Impression / Diagnosis */}
+            <div className="mb-2.5 p-2.5 rounded border border-blue-300 bg-blue-50/40 text-[11px] page-break-inside-avoid">
+              <p className="font-bold text-blue-900 uppercase text-[9px] tracking-wider">Diagnostic Impression / Primary Conclusion</p>
+              <p className="font-bold text-xs text-gray-900 mt-0.5">{printTarget.diagnosis}</p>
+            </div>
+
+            {/* Detailed Laboratory Results */}
+            {printTarget.testResults && (
+              <div className="mb-2.5 page-break-inside-avoid">
+                <p className="font-bold text-gray-700 uppercase text-[9px] tracking-wider mb-0.5">
+                  Detailed Laboratory Findings & Biomarkers
+                </p>
+                <div className="bg-gray-50 border border-gray-300 rounded p-2.5 font-mono text-[10.5px] text-gray-900 whitespace-pre-wrap leading-tight">
+                  {printTarget.testResults}
+                </div>
+              </div>
+            )}
+
+            {/* Doctor Notes */}
+            {printTarget.doctorNotes && (
+              <div className="mb-3 p-2 rounded border border-gray-200 bg-gray-50 text-[10.5px] page-break-inside-avoid">
+                <p className="font-bold text-gray-700 uppercase text-[9px] tracking-wider">Doctor Recommendations & Follow-Up</p>
+                <p className="text-gray-900 mt-0.5 whitespace-pre-wrap">{printTarget.doctorNotes}</p>
+              </div>
+            )}
+
+            {/* Signatures & Certification Footer */}
+            <div className="pt-3 border-t border-gray-400 flex justify-between items-end text-[10px] page-break-inside-avoid mt-auto">
+              <div className="text-[8.5px] text-gray-500 max-w-xs leading-tight">
+                <p>This report is electronically authenticated via VitalSync LIS.</p>
+                <p>Official diagnostic record. Verified and authorized for clinical evaluation.</p>
+              </div>
+              <div className="text-center">
+                <div className="w-36 border-b border-gray-500 mb-1" />
+                <p className="font-bold text-[10.5px] text-gray-900">{printTarget.doctorName || 'Authorized Pathologist'}</p>
+                <p className="text-[8.5px] text-gray-500">Consultant Pathologist / Lab Director</p>
+              </div>
             </div>
           </div>
-        </div>
+        </PrintPortal>
       )}
     </div>
   );
