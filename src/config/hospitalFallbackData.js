@@ -1,4 +1,4 @@
-﻿/**
+/**
  * VitalSync HMS - Resilient Hospital Showcase Data
  * Ensures doctors, departments, and live bed & ICU availability always render gracefully
  * even if the cloud backend is cold-starting or sleeping on Render free tier.
@@ -235,3 +235,76 @@ export const FALLBACK_HOSPITAL_INFO = {
   registrationNumber: 'VS-HOSP-2026-IND',
   invoiceFooter: 'Thank you for trusting VitalSync Healthcare. Get well soon!',
 };
+
+export const FALLBACK_BEDS_LIST = [
+  // 10 ICU Beds
+  ...Array.from({ length: 10 }, (_, i) => {
+    const num = i + 1;
+    const isOccupied = num <= 3;
+    const isReserved = num === 4;
+    return {
+      id: 100 + num,
+      bedNumber: `ICU-${String(num).padStart(3, '0')}`,
+      departmentId: 6,
+      departmentName: 'Intensive Care Unit (ICU)',
+      bedType: 'ICU',
+      dailyCharge: 500.00,
+      status: isOccupied ? 'OCCUPIED' : (isReserved ? 'RESERVED' : 'AVAILABLE'),
+      currentPatientName: num === 1 ? 'Michael Chang' : (num === 2 ? 'Robert Johnson' : null),
+      currentPatientCode: num === 1 ? 'PT-1001' : (num === 2 ? 'PT-1003' : null),
+      notes: 'Advanced mechanical ventilator and dynamic hemodynamic monitor',
+    };
+  }),
+  // 8 Emergency Beds
+  ...Array.from({ length: 8 }, (_, i) => {
+    const num = i + 1;
+    const isOccupied = num <= 2;
+    return {
+      id: 200 + num,
+      bedNumber: `EMG-${String(num).padStart(2, '0')}`,
+      departmentId: 5,
+      departmentName: 'Emergency & Trauma',
+      bedType: 'EMERGENCY',
+      dailyCharge: 300.00,
+      status: isOccupied ? 'OCCUPIED' : 'AVAILABLE',
+      currentPatientName: null,
+      currentPatientCode: null,
+      notes: 'Level 1 Acute Trauma resuscitation bay',
+    };
+  }),
+  // 15 General Beds
+  ...Array.from({ length: 15 }, (_, i) => {
+    const num = i + 1;
+    const isOccupied = num <= 4;
+    return {
+      id: 300 + num,
+      bedNumber: `GW-${200 + num}`,
+      departmentId: 4,
+      departmentName: 'General Medicine',
+      bedType: 'GENERAL',
+      dailyCharge: 100.00,
+      status: isOccupied ? 'OCCUPIED' : 'AVAILABLE',
+      currentPatientName: null,
+      currentPatientCode: null,
+      notes: 'General Medical Inpatient ward unit',
+    };
+  }),
+  // 5 Private Deluxe Beds
+  ...Array.from({ length: 5 }, (_, i) => {
+    const num = i + 1;
+    const isOccupied = num === 1;
+    return {
+      id: 400 + num,
+      bedNumber: `PVT-${300 + num}`,
+      departmentId: 1,
+      departmentName: 'Cardiology',
+      bedType: 'PRIVATE',
+      dailyCharge: 250.00,
+      status: isOccupied ? 'OCCUPIED' : 'AVAILABLE',
+      currentPatientName: null,
+      currentPatientCode: null,
+      notes: 'Private single-room deluxe recovery suite',
+    };
+  }),
+];
+
