@@ -25,6 +25,9 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await authApi.getCurrentUser();
         const userData = res.data;
+        if (userData && userData.role) {
+          userData.role = String(userData.role).replace(/^ROLE_/, '').toUpperCase();
+        }
         setUser(userData);
         setToken(savedToken);
         localStorage.setItem('vitalsync_user', JSON.stringify(userData));
@@ -66,6 +69,8 @@ export const AuthProvider = ({ children }) => {
           role: 'PATIENT',
           status: 'ACTIVE',
         };
+      } else if (userData.role) {
+        userData.role = String(userData.role).replace(/^ROLE_/, '').toUpperCase();
       }
 
       setUser(userData);
@@ -144,6 +149,8 @@ export const AuthProvider = ({ children }) => {
           role: 'PATIENT',
           status: 'ACTIVE',
         };
+      } else if (userData.role) {
+        userData.role = String(userData.role).replace(/^ROLE_/, '').toUpperCase();
       }
 
       setUser(userData);

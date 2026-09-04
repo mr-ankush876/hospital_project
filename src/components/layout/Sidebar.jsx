@@ -53,6 +53,16 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       ];
     }
 
+    if (user.role === 'NURSE') {
+      return [
+        { label: 'Nurse Desk', icon: 'medical_services', path: '/dashboard' },
+        { label: 'Emergency Desk', icon: 'emergency', path: '/admin/emergencies', highlight: true },
+        { label: 'Patients Desk', icon: 'group', path: '/patients' },
+        { label: 'Beds & ICU Allocation', icon: 'hotel', path: '/admin/beds' },
+        { label: 'Prescriptions', icon: 'prescriptions', path: '/prescriptions' },
+      ];
+    }
+
     // Default: ADMIN
     return [
       { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },

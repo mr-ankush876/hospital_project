@@ -55,7 +55,18 @@ import AdminLogin from './pages/admin/AdminLogin';
 
 // Route guard component
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated: contextAuth, user: contextUser, loading } = useAuth();
+
+  // Fallback authentication check from localStorage to eliminate navigation race conditions
+  const savedUserStr = typeof window !== 'undefined' ? localStorage.getItem('vitalsync_user') : null;
+  const savedToken = typeof window !== 'undefined' ? localStorage.getItem('vitalsync_token') : null;
+  let savedUser = null;
+  try {
+    savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+  } catch (e) {}
+
+  const effectiveUser = contextUser || savedUser;
+  const effectiveAuth = contextAuth || (!!savedToken && !!effectiveUser);
 
   if (loading) {
     return (
@@ -65,15 +76,18 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!effectiveAuth) {
     return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles && allowedRoles.length > 0) {
-    const hasPermission = allowedRoles.includes(user?.role) || user?.role === 'ADMIN';
+    const userRole = effectiveUser?.role ? String(effectiveUser.role).toUpperCase() : '';
+    const upperAllowed = allowedRoles.map((r) => String(r).toUpperCase());
+    const hasPermission = upperAllowed.includes(userRole) || userRole === 'ADMIN';
+
     if (!hasPermission) {
-      if (user?.role === 'PATIENT') return <Navigate to="/patient/appointments" replace />;
-      if (user?.role === 'DOCTOR') return <Navigate to="/doctor/dashboard" replace />;
+      if (userRole === 'PATIENT') return <Navigate to="/patient/appointments" replace />;
+      if (userRole === 'DOCTOR') return <Navigate to="/doctor/dashboard" replace />;
       return <Navigate to="/dashboard" replace />;
     }
   }

@@ -44,17 +44,19 @@ const Login = () => {
 
     const result = await login(username.trim(), password);
     if (result.success) {
+      const userRole = String(result.role || result.user?.role || 'PATIENT').replace(/^ROLE_/, '').toUpperCase();
+
       // Security enforcement: Restrict ADMIN login to private executive portal only!
-      if (result.role === 'ADMIN' && !isPrivateAdminPortal) {
+      if (userRole === 'ADMIN' && !isPrivateAdminPortal) {
         if (logout) logout();
         toast.error('Administrative access is restricted. Admin accounts must sign in via the private executive portal.');
         return;
       }
 
       toast.success(`Welcome back, ${result.user?.fullName || username}!`);
-      if (result.role === 'PATIENT') {
+      if (userRole === 'PATIENT') {
         navigate('/patient/appointments');
-      } else if (result.role === 'DOCTOR') {
+      } else if (userRole === 'DOCTOR') {
         navigate('/doctor/dashboard');
       } else {
         navigate('/dashboard');
@@ -253,10 +255,8 @@ const Login = () => {
             <PatientRegisterModal
               isModal={false}
               onSuccess={(registeredEmail) => {
-                if (registeredEmail) {
-                  setUsername(registeredEmail);
-                }
-                setActiveTab('login');
+                toast.success('Registration successful! Redirecting to your patient portal...');
+                navigate('/patient/appointments');
               }}
             />
           )}
