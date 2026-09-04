@@ -1,7 +1,7 @@
 /**
  * VitalSync HMS - Resilient Hospital Showcase Data
  * Ensures doctors, departments, and live bed & ICU availability always render gracefully
- * even if the cloud backend is cold-starting or sleeping on Render free tier.
+ * even if the cloud backend is cold-starting or sleeping on Railway.
  */
 
 export const FALLBACK_DOCTORS = [

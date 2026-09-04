@@ -87,11 +87,27 @@
 ## ❓ Troubleshooting (अक्सर आने वाली समस्याएं और समाधान)
 
 ### 1. "Backend connect nahi ho raha / API Error 500 ya Network Error"
-- **कारण**: सिर्फ Frontend चला है, Backend (`http://localhost:8080`) नहीं चल रहा है।
-- **समाधान**: सुनिश्चित करें कि Backend का Terminal भी खुला हुआ है और Spring Boot स्टार्ट हो चुका है।
+- **Local Run**: सिर्फ Frontend चला है, local Backend (`http://localhost:8080`) स्टार्ट नहीं है। `start-windows.bat` या `run-backend.bat` चलाएं।
+- **Railway Cloud Deployment**: अगर आपका ऐप Vercel / Cloud पर तैनात है, तो Railway backend URL (`vercel.json` या `VITE_API_URL` env variable) एक्टिव होना चाहिए।
 
 ### 2. "'node' is not recognized" या "'java' is not recognized"
 - **समाधान**: Node.js और Java JDK 17 इंस्टॉल करें और अपना CMD / VS Code रीस्टार्ट करें।
 
 ### 3. Port Already in Use (8080 ya 5173)
 - अगर कोई दूसरा ऍप 8080 या 5173 पर चल रहा है, तो उसे बंद करें या टास्क मैनेजर से पुराना java / node प्रोसेस kill करें।
+
+---
+
+## 🚂 Railway Cloud & Railway MySQL Setup Guide
+
+VitalSync HMS का **Backend** और **MySQL Database** को Railway पर डिप्लॉय करना बेहद आसान है:
+
+1. **Railway Marketplace से MySQL add करें**:
+   - Railway डैशबोर्ड में `+ New` -> `Database` -> `Add MySQL` पर क्लिक करें।
+   - Railway अपने आप `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE` एनवायरनमेंट वेरिएबल्स सेट कर देगा।
+2. **Spring Boot App Deploy करें**:
+   - Repository कनेक्ट करें। Railway ऑटोमैटिकली `railway.json` और root `Dockerfile` के ज़रिये ऐप बिल्ड और रन करेगा।
+   - Variables में `SPRING_PROFILES_ACTIVE` = `mysql` सेट करें।
+3. **Frontend Rewrites (Vercel)**:
+   - `vercel.json` में अपना Railway domain नाम डाल दें या Vercel project Settings में `VITE_API_URL` एनवायरनमेंट वेरिएबल भरें (जैसे: `https://your-app.up.railway.app/api`).
+
