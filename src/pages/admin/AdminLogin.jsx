@@ -38,12 +38,12 @@ const AdminLogin = () => {
         toast.success(`Welcome to Administrative Console, ${result.user?.fullName || username}!`);
       }
       if (userRole === 'ADMIN' || userRole === 'RECEPTIONIST' || userRole === 'NURSE') {
-        navigate('/dashboard');
+        window.location.href = '/dashboard';
       } else if (userRole === 'DOCTOR') {
-        navigate('/doctor/dashboard');
+        window.location.href = '/doctor/dashboard';
       } else {
         toast.error('Access Restricted: Administrator privileges required.');
-        navigate('/patient/appointments');
+        window.location.href = '/patient/appointments';
       }
     } else {
       toast.error(result.error || 'Administrator authentication failed. Please verify credentials.');

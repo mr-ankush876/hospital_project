@@ -23,11 +23,33 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
-  const { login, logout, loading } = useAuth();
+  const { user, token, login, logout, loading } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
   const isPrivateAdminPortal = searchParams.get('portal') === 'admin';
+
+  // Auto-redirect if user is already authenticated
+  useEffect(() => {
+    const savedToken = localStorage.getItem('vitalsync_token');
+    const savedUserStr = localStorage.getItem('vitalsync_user');
+    if ((token || savedToken) && (user || savedUserStr)) {
+      try {
+        const u = user || JSON.parse(savedUserStr);
+        const role = String(u?.role || 'PATIENT').replace(/^ROLE_/, '').toUpperCase();
+        if (role === 'ADMIN' && !isPrivateAdminPortal) {
+          return;
+        }
+        if (role === 'PATIENT') {
+          window.location.href = '/patient/appointments';
+        } else if (role === 'DOCTOR') {
+          window.location.href = '/doctor/dashboard';
+        } else {
+          window.location.href = '/dashboard';
+        }
+      } catch (e) {}
+    }
+  }, [user, token, isPrivateAdminPortal]);
 
   useEffect(() => {
     if (searchParams.get('tab') === 'register' && !isPrivateAdminPortal) {
@@ -54,13 +76,8 @@ const Login = () => {
       }
 
       toast.success(`Welcome back, ${result.user?.fullName || username}!`);
-      if (userRole === 'PATIENT') {
-        navigate('/patient/appointments');
-      } else if (userRole === 'DOCTOR') {
-        navigate('/doctor/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      const targetPath = userRole === 'PATIENT' ? '/patient/appointments' : userRole === 'DOCTOR' ? '/doctor/dashboard' : '/dashboard';
+      window.location.href = targetPath;
     } else {
       toast.error(result.error || 'Authentication failed. Please verify your email and password.');
     }
@@ -256,7 +273,7 @@ const Login = () => {
               isModal={false}
               onSuccess={(registeredEmail) => {
                 toast.success('Registration successful! Redirecting to your patient portal...');
-                navigate('/patient/appointments');
+                window.location.href = '/patient/appointments';
               }}
             />
           )}
