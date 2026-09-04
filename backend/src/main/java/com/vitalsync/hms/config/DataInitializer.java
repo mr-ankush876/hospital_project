@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,6 +26,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
+    private final DataSource dataSource;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final DoctorRepository doctorRepository;
@@ -50,6 +53,18 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        try (Connection conn = dataSource.getConnection()) {
+            log.info("=================================================================");
+            log.info("  VITALSYNC HMS DATABASE PERSISTENCE DIAGNOSTIC");
+            log.info("  Connected Database Engine: {}", conn.getMetaData().getDatabaseProductName());
+            log.info("  Database Driver: {} {}", conn.getMetaData().getDriverName(), conn.getMetaData().getDriverVersion());
+            log.info("  Database Connection URL: {}", conn.getMetaData().getURL());
+            log.info("  Seed Data Enabled: {}", seedDataEnabled);
+            log.info("=================================================================");
+        } catch (Exception e) {
+            log.error("Failed to retrieve database metadata during startup diagnostic", e);
+        }
+
         // 1. Ensure master administrator account exists (idempotent, never overwrites customized password/data)
         ensureAdminUser();
 
