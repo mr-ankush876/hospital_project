@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const validateSession = async () => {
       const savedToken = localStorage.getItem('vitalsync_token');
-      if (!savedToken) return;
+      if (!savedToken || savedToken.startsWith('offline_demo_token_')) return;
 
       try {
         const res = await authApi.getCurrentUser();
@@ -32,11 +32,15 @@ export const AuthProvider = ({ children }) => {
         setToken(savedToken);
         localStorage.setItem('vitalsync_user', JSON.stringify(userData));
       } catch (err) {
-        console.warn('Session validation failed, clearing auth state:', err?.response?.status);
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem('vitalsync_token');
-        localStorage.removeItem('vitalsync_user');
+        if (err?.response?.status === 401) {
+          console.warn('Session expired or invalid, clearing auth state');
+          setUser(null);
+          setToken(null);
+          localStorage.removeItem('vitalsync_token');
+          localStorage.removeItem('vitalsync_user');
+        } else {
+          console.warn('Session validation notice (temporary network glitch), preserving cached user session');
+        }
       }
     };
 

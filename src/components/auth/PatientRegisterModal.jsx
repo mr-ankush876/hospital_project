@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import PhoneNumberInput from '../common/PhoneNumberInput';
@@ -9,6 +10,7 @@ const BLOOD_GROUPS = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
   const { registerPatient, loading } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -135,7 +137,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
       if (onSuccess) {
         onSuccess(payload.email);
       } else {
-        window.location.href = '/patient/appointments';
+        navigate('/patient/appointments');
       }
     } else {
       const errText = result.error || 'Registration failed. Please check your information and try again.';

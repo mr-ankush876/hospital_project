@@ -41,15 +41,15 @@ const Login = () => {
           return;
         }
         if (role === 'PATIENT') {
-          window.location.href = '/patient/appointments';
+          navigate('/patient/appointments', { replace: true });
         } else if (role === 'DOCTOR') {
-          window.location.href = '/doctor/dashboard';
+          navigate('/doctor/dashboard', { replace: true });
         } else {
-          window.location.href = '/dashboard';
+          navigate('/dashboard', { replace: true });
         }
       } catch (e) {}
     }
-  }, [user, token, isPrivateAdminPortal]);
+  }, [user, token, isPrivateAdminPortal, navigate]);
 
   useEffect(() => {
     if (searchParams.get('tab') === 'register' && !isPrivateAdminPortal) {
@@ -76,8 +76,13 @@ const Login = () => {
       }
 
       toast.success(`Welcome back, ${result.user?.fullName || username}!`);
-      const targetPath = userRole === 'PATIENT' ? '/patient/appointments' : userRole === 'DOCTOR' ? '/doctor/dashboard' : '/dashboard';
-      window.location.href = targetPath;
+      if (userRole === 'PATIENT') {
+        navigate('/patient/appointments');
+      } else if (userRole === 'DOCTOR') {
+        navigate('/doctor/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       toast.error(result.error || 'Authentication failed. Please verify your email and password.');
     }
@@ -273,7 +278,7 @@ const Login = () => {
               isModal={false}
               onSuccess={(registeredEmail) => {
                 toast.success('Registration successful! Redirecting to your patient portal...');
-                window.location.href = '/patient/appointments';
+                navigate('/patient/appointments');
               }}
             />
           )}
