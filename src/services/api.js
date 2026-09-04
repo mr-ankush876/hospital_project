@@ -357,7 +357,13 @@ api.interceptors.response.use(
     const isMockToken = token.startsWith('offline_demo_token_');
     const method = (error.config?.method || 'get').toLowerCase();
 
-    // If Vite dev server proxy returns 502/504 Bad Gateway/Timeout HTML page because local backend is offline
+    const isAuthUrl = error.config?.url?.includes('/auth/login') ||
+                      error.config?.url?.includes('/auth/register') ||
+                      error.config?.url?.includes('/auth/forgot-password') ||
+                      error.config?.url?.includes('/auth/reset-password') ||
+                      error.config?.url?.includes('/auth/me');
+
+    // If Vite dev server proxy returns 502/504 Bad Gateway/Timeout HTML page because backend is offline
     const isProxyOfflineError = error.response &&
       (error.response.status === 502 || error.response.status === 504 || error.response.status === 503) &&
       (typeof error.response.data === 'string' && error.response.data.includes('Proxy error'));
@@ -367,13 +373,18 @@ api.interceptors.response.use(
       error.message = 'Network Error';
     }
 
+    // Auth requests must ALWAYS reject on error so components process actual auth state instead of dummy tokens
+    if (isAuthUrl && !isMockToken) {
+      if (error.response && error.response.status === 401) {
+        // Do not redirect on failed login/register form submission
+      }
+      return Promise.reject(error);
+    }
+
     // If backend returned an explicit response (400, 409, 401, 403, 500), reject so component catches backend message
     if (error.response && !isMockToken) {
       if (error.response.status === 401) {
-        const isLoginRequest = error.config?.url?.includes('/auth/login') ||
-                               error.config?.url?.includes('/auth/register') ||
-                               error.config?.url?.includes('/auth/forgot-password');
-        if (!isLoginRequest) {
+        if (!isAuthUrl) {
           localStorage.removeItem('vitalsync_token');
           localStorage.removeItem('vitalsync_user');
           if (window.location.pathname.startsWith('/patient') ||
