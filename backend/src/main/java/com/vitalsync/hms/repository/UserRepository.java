@@ -20,6 +20,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameIgnoreCaseOrEmailIgnoreCase(String username, String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
+    List<User> findByRole(String role);
 
     @Query("SELECT u FROM User u WHERE " +
            "(:role IS NULL OR u.role = :role) " +

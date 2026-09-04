@@ -23,7 +23,7 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
-  const { login, loading } = useAuth();
+  const { login, logout, loading } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -44,6 +44,13 @@ const Login = () => {
 
     const result = await login(username.trim(), password);
     if (result.success) {
+      // Security enforcement: Restrict ADMIN login to private executive portal only!
+      if (result.role === 'ADMIN' && !isPrivateAdminPortal) {
+        if (logout) logout();
+        toast.error('Administrative access is restricted. Admin accounts must sign in via the private executive portal.');
+        return;
+      }
+
       if (result.isOfflineDemo) {
         toast.info(`Logged in as ${result.user?.fullName} (Offline Mode). Run start-windows.bat to connect to live DB.`);
       } else {

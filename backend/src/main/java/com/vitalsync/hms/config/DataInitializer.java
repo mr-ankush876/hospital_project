@@ -119,7 +119,7 @@ public class DataInitializer implements CommandLineRunner {
                     .username(adminUsername)
                     .password(passwordEncoder.encode(adminPassword))
                     .email("ankush@vitalsync.com")
-                    .fullName("Dr. Ankush singh (Administrator)")
+                    .fullName("Dr. Ankush singh (Chief Medical Officer)")
                     .phone("+91 8797254899")
                     .role("ADMIN")
                     .status("ACTIVE")
@@ -128,25 +128,13 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Master administrator account initialized with username='{}'", adminUsername);
         }
 
-        Optional<User> fallbackAdmin = userRepository.findByUsername("admin");
-        if (fallbackAdmin.isPresent()) {
-            User fAdmin = fallbackAdmin.get();
-            if (!passwordEncoder.matches(adminPassword, fAdmin.getPassword())) {
-                fAdmin.setPassword(passwordEncoder.encode(adminPassword));
-                fAdmin.setStatus("ACTIVE");
-                userRepository.save(fAdmin);
+        // PERMANENT SECURITY PURGE: Remove any extra admin accounts (including fallback 'admin')
+        List<User> adminUsers = userRepository.findByRole("ADMIN");
+        for (User u : adminUsers) {
+            if (!adminUsername.equalsIgnoreCase(u.getUsername())) {
+                log.warn("Purging unauthorized extra admin account: username='{}', email='{}'", u.getUsername(), u.getEmail());
+                userRepository.delete(u);
             }
-        } else {
-            User fAdmin = User.builder()
-                    .username("admin")
-                    .password(passwordEncoder.encode(adminPassword))
-                    .email("admin@vitalsync.com")
-                    .fullName("System Administrator")
-                    .phone("+91 8797254899")
-                    .role("ADMIN")
-                    .status("ACTIVE")
-                    .build();
-            userRepository.save(fAdmin);
         }
     }
 

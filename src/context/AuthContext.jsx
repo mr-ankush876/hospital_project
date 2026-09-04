@@ -43,7 +43,6 @@ export const AuthProvider = ({ children }) => {
   // Fallback demo user profiles when backend is offline
   const DEMO_USERS = {
     ankush_876: { id: 1, username: 'ankush_876', fullName: 'Dr. Ankush singh (Chief Medical Officer)', email: 'ankush@vitalsync.com', role: 'ADMIN', departmentName: 'Executive' },
-    admin: { id: 2, username: 'admin', fullName: 'Dr. Sarah Mitchell', email: 'admin@vitalsync.com', role: 'ADMIN', departmentName: 'Hospital Administration' },
     'dr.chen': { id: 3, username: 'dr.chen', fullName: 'Dr. Robert Chen', email: 'r.chen@vitalsync.com', role: 'DOCTOR', departmentName: 'Cardiology' },
     'dr.stanton': { id: 4, username: 'dr.stanton', fullName: 'Dr. Emily Stanton', email: 'e.stanton@vitalsync.com', role: 'DOCTOR', departmentName: 'Pediatrics' },
     receptionist: { id: 5, username: 'receptionist', fullName: 'Alex Vance', email: 'receptionist@vitalsync.com', role: 'RECEPTIONIST', departmentName: 'Front Desk' },
