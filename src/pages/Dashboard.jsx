@@ -71,12 +71,14 @@ const Dashboard = () => {
   }, []);
 
   const quickActions = [
+    { label: 'Emergency 24/7', icon: 'emergency', path: '/admin/emergencies', color: 'text-rose-600', bg: 'bg-rose-50', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
+    { label: 'Bed & ICU Desk', icon: 'hotel', path: '/admin/beds', color: 'text-teal-700', bg: 'bg-teal-50', roles: ['ADMIN', 'RECEPTIONIST'] },
     { label: 'Register Patient', icon: 'person_add', path: '/patients', color: 'text-primary', bg: 'bg-primary/10', roles: ['ADMIN', 'RECEPTIONIST'] },
     { label: 'Book Appointment', icon: 'event_available', path: '/appointments', color: 'text-emerald-700', bg: 'bg-emerald-50', roles: ['ADMIN', 'RECEPTIONIST'] },
     { label: 'Create Prescription', icon: 'prescriptions', path: '/prescriptions', color: 'text-purple-700', bg: 'bg-purple-50', roles: ['ADMIN', 'DOCTOR'] },
-    { label: 'Generate Bill', icon: 'receipt_long', path: '/billing', color: 'text-amber-700', bg: 'bg-amber-50', roles: ['ADMIN', 'RECEPTIONIST'] },
-    { label: 'Analytics Reports', icon: 'assessment', path: '/reports', color: 'text-sky-700', bg: 'bg-sky-50', roles: ['ADMIN'] },
-    { label: 'System Settings', icon: 'settings', path: '/settings', color: 'text-slate-700', bg: 'bg-slate-100', roles: ['ADMIN'] },
+    { label: 'Billing Desk', icon: 'receipt_long', path: '/billing', color: 'text-amber-700', bg: 'bg-amber-50', roles: ['ADMIN', 'RECEPTIONIST'] },
+    { label: 'User & Accounts', icon: 'manage_accounts', path: '/admin/users', color: 'text-indigo-700', bg: 'bg-indigo-50', roles: ['ADMIN'] },
+    { label: 'Departments', icon: 'domain', path: '/admin/departments', color: 'text-sky-700', bg: 'bg-sky-50', roles: ['ADMIN'] },
   ].filter((a) => hasRole(a.roles));
 
   if (loading) {
@@ -98,7 +100,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-headline-lg text-headline-lg text-on-surface">
-            Welcome back, {user?.fullName || 'Doctor'}
+            Welcome back, {user?.fullName || user?.username || 'Administrator'}
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
             Hospital Operations Overview • Role: <strong className="text-primary">{user?.role}</strong>
@@ -114,7 +116,7 @@ const Dashboard = () => {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           icon="group"
           label="Total Patients"
@@ -136,6 +138,13 @@ const Dashboard = () => {
           color="text-purple-700"
           bgColor="bg-purple-50"
         />
+        <StatCard
+          icon="hotel"
+          label="Available Beds"
+          value={`${stats.availableBeds || 0} / ${stats.totalBeds || 0}`}
+          color="text-teal-700"
+          bgColor="bg-teal-50"
+        />
         {hasRole(['ADMIN']) ? (
           <StatCard
             icon="payments"
@@ -155,20 +164,74 @@ const Dashboard = () => {
         )}
       </div>
 
+      {/* Live Capacity & Emergency Quick Widget */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 font-bold flex items-center justify-center">
+              <span className="material-symbols-outlined text-xl">hotel</span>
+            </div>
+            <div>
+              <p className="text-xs uppercase font-bold text-on-surface-variant">General & ICU Beds</p>
+              <p className="text-sm font-extrabold text-on-surface">
+                {stats.availableBeds || 0} Vacant • {stats.occupiedBeds || 0} Occupied
+              </p>
+            </div>
+          </div>
+          <Link to="/admin/beds" className="text-xs font-bold text-primary hover:underline">
+            Manage &rarr;
+          </Link>
+        </div>
+
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center">
+              <span className="material-symbols-outlined text-xl">monitor_heart</span>
+            </div>
+            <div>
+              <p className="text-xs uppercase font-bold text-on-surface-variant">ICU Live Beds</p>
+              <p className="text-sm font-extrabold text-on-surface">
+                {stats.availableIcuBeds || 0} ICU Available ({stats.totalIcuBeds || 0} Total)
+              </p>
+            </div>
+          </div>
+          <Link to="/admin/beds" className="text-xs font-bold text-primary hover:underline">
+            View &rarr;
+          </Link>
+        </div>
+
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 font-bold flex items-center justify-center">
+              <span className="material-symbols-outlined text-xl">emergency</span>
+            </div>
+            <div>
+              <p className="text-xs uppercase font-bold text-on-surface-variant">Emergency 24/7 Desk</p>
+              <p className="text-sm font-extrabold text-on-surface">
+                {stats.availableEmergencyBeds || 0} ER Beds Open
+              </p>
+            </div>
+          </div>
+          <Link to="/admin/emergencies" className="text-xs font-bold text-rose-600 hover:underline">
+            Desk &rarr;
+          </Link>
+        </div>
+      </div>
+
       {/* Quick Action Navigation */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 shadow-sm">
         <h2 className="font-headline-md text-headline-md text-on-surface mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {quickActions.map((a) => (
             <Link
               key={a.label}
               to={a.path}
-              className="flex flex-col items-center justify-center p-4 rounded-xl border border-outline-variant hover:border-primary/40 hover:shadow-sm transition-all group bg-surface hover:bg-surface-container-low"
+              className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-outline-variant hover:border-primary/40 hover:shadow-sm transition-all group bg-surface hover:bg-surface-container-low"
             >
               <div
-                className={`w-12 h-12 rounded-xl ${a.bg} flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform shadow-xs`}
+                className={`w-11 h-11 rounded-xl ${a.bg} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-xs`}
               >
-                <span className={`material-symbols-outlined ${a.color} text-2xl`}>{a.icon}</span>
+                <span className={`material-symbols-outlined ${a.color} text-xl`}>{a.icon}</span>
               </div>
               <span className="text-xs font-bold text-on-surface text-center leading-snug">{a.label}</span>
             </Link>
