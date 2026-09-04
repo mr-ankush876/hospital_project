@@ -45,7 +45,12 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional(readOnly = true)
     public List<AuditLogDto> getAll(String username, String role, String action, String search) {
-        return auditLogRepository.filterLogs(username, role, action, search)
+        String cleanRole = (role != null && !role.trim().isEmpty() && !"ALL".equalsIgnoreCase(role)) ? role.trim().toUpperCase() : null;
+        String cleanUsername = (username != null && !username.trim().isEmpty()) ? username.trim() : null;
+        String cleanAction = (action != null && !action.trim().isEmpty() && !"ALL".equalsIgnoreCase(action)) ? action.trim() : null;
+        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        return auditLogRepository.filterLogs(cleanUsername, cleanRole, cleanAction, cleanSearch)
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -54,7 +59,12 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional(readOnly = true)
     public Page<AuditLogDto> getAllPaged(String username, String role, String action, String search, Pageable pageable) {
-        return auditLogRepository.filterLogsPaged(username, role, action, search, pageable)
+        String cleanRole = (role != null && !role.trim().isEmpty() && !"ALL".equalsIgnoreCase(role)) ? role.trim().toUpperCase() : null;
+        String cleanUsername = (username != null && !username.trim().isEmpty()) ? username.trim() : null;
+        String cleanAction = (action != null && !action.trim().isEmpty() && !"ALL".equalsIgnoreCase(action)) ? action.trim() : null;
+        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        return auditLogRepository.filterLogsPaged(cleanUsername, cleanRole, cleanAction, cleanSearch, pageable)
                 .map(this::mapToDto);
     }
 

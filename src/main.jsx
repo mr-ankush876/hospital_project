@@ -49,6 +49,7 @@ import Departments from './pages/admin/Departments';
 import BedManagement from './pages/admin/BedManagement';
 import AuditLogs from './pages/admin/AuditLogs';
 import MedicalReportsAdmin from './pages/admin/MedicalReportsAdmin';
+import ReceptionistDesk from './pages/admin/ReceptionistDesk';
 import AdminLogin from './pages/admin/AdminLogin';
 
 // Route guard component
@@ -285,6 +286,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             />
 
             {/* Admin Management Pages */}
+            <Route
+              path="/admin/receptionist-desk"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'RECEPTIONIST']}>
+                  <Layout><ReceptionistDesk /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/receptionist-desk"
+              element={<Navigate to="/admin/receptionist-desk" replace />}
+            />
             <Route
               path="/admin/users"
               element={

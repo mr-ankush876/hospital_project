@@ -122,7 +122,12 @@ const UserManagement = () => {
     e.preventDefault();
     setCreatingStaff(true);
     try {
-      await userManagementApi.createStaffAccount(staffForm);
+      const payload = {
+        ...staffForm,
+        departmentId: staffForm.departmentId ? Number(staffForm.departmentId) : null,
+        consultationFee: staffForm.consultationFee ? Number(staffForm.consultationFee) : 100.00,
+      };
+      await userManagementApi.createStaffAccount(payload);
       toast.success(`Staff account for ${staffForm.fullName} created successfully.`);
       setStaffModalOpen(false);
       setStaffForm({

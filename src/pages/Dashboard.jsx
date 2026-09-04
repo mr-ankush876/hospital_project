@@ -72,6 +72,7 @@ const Dashboard = () => {
 
   const quickActions = [
     { label: 'Emergency 24/7', icon: 'emergency', path: '/admin/emergencies', color: 'text-rose-600', bg: 'bg-rose-50', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
+    { label: 'Receptionist Desk', icon: 'desk', path: '/admin/receptionist-desk', color: 'text-amber-700', bg: 'bg-amber-50', roles: ['ADMIN', 'RECEPTIONIST'] },
     { label: 'Bed & ICU Desk', icon: 'hotel', path: '/admin/beds', color: 'text-teal-700', bg: 'bg-teal-50', roles: ['ADMIN', 'RECEPTIONIST'] },
     { label: 'Register Patient', icon: 'person_add', path: '/patients', color: 'text-primary', bg: 'bg-primary/10', roles: ['ADMIN', 'RECEPTIONIST'] },
     { label: 'Book Appointment', icon: 'event_available', path: '/appointments', color: 'text-emerald-700', bg: 'bg-emerald-50', roles: ['ADMIN', 'RECEPTIONIST'] },

@@ -45,6 +45,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       return [
         { label: 'Reception Dashboard', icon: 'dashboard', path: '/dashboard' },
         { label: 'Emergency Desk', icon: 'emergency', path: '/admin/emergencies', highlight: true },
+        { label: 'Receptionist Desk', icon: 'desk', path: '/admin/receptionist-desk' },
         { label: 'Patients Desk', icon: 'group', path: '/patients' },
         { label: 'Appointments', icon: 'event_available', path: '/appointments' },
         { label: 'Beds & ICU Allocation', icon: 'hotel', path: '/admin/beds' },
@@ -56,6 +57,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     return [
       { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
       { label: 'Emergency Desk', icon: 'emergency', path: '/admin/emergencies', highlight: true },
+      { label: 'Receptionist Desk', icon: 'desk', path: '/admin/receptionist-desk' },
       { label: 'User & Accounts', icon: 'manage_accounts', path: '/admin/users' },
       { label: 'Patients', icon: 'group', path: '/patients' },
       { label: 'Doctors', icon: 'medical_services', path: '/doctors' },
