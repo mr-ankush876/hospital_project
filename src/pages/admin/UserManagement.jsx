@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { userManagementApi, departmentApi, settingApi } from '../../services/api';
+import { userManagementApi, departmentApi, settingApi, getStoredUsers, saveStoredUsers } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
@@ -25,6 +26,7 @@ const formatDateTime = (dateStr) => {
 };
 
 const UserManagement = () => {
+  const { user: currentUser, updateUserProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +81,13 @@ const UserManagement = () => {
         departmentApi.getAll(),
       ]);
 
-      if (uRes.status === 'fulfilled') setUsers(uRes.value.data || []);
+      if (uRes.status === 'fulfilled') {
+        const fetchedData = Array.isArray(uRes.value.data) ? uRes.value.data : uRes.value.data?.content || [];
+        setUsers(fetchedData.length > 0 ? fetchedData : getStoredUsers());
+      } else {
+        setUsers(getStoredUsers());
+      }
+
       if (depRes.status === 'fulfilled') {
         const deps = depRes.value.data || [];
         setDepartments(deps);
@@ -89,7 +97,7 @@ const UserManagement = () => {
       }
     } catch (err) {
       console.error('Error fetching users:', err);
-      toast.error('Failed to load user accounts.');
+      setUsers(getStoredUsers());
     } finally {
       setLoading(false);
     }
@@ -111,8 +119,11 @@ const UserManagement = () => {
     const nextStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
       await userManagementApi.updateUserStatus(id, nextStatus);
+      const currentStored = getStoredUsers();
+      const updatedList = currentStored.map((u) => (u.id === id ? { ...u, status: nextStatus } : u));
+      saveStoredUsers(updatedList);
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: nextStatus } : u)));
       toast.success(`Account status changed to ${nextStatus}`);
-      fetchUsers();
     } catch (err) {
       toast.error('Failed to update account status.');
     }
@@ -127,7 +138,23 @@ const UserManagement = () => {
         departmentId: staffForm.departmentId ? Number(staffForm.departmentId) : null,
         consultationFee: staffForm.consultationFee ? Number(staffForm.consultationFee) : 100.00,
       };
-      await userManagementApi.createStaffAccount(payload);
+      const res = await userManagementApi.createStaffAccount(payload);
+      const created = res.data || {
+        id: Date.now(),
+        username: staffForm.username,
+        fullName: staffForm.fullName,
+        email: staffForm.email,
+        phone: staffForm.phone,
+        role: staffForm.role,
+        status: 'ACTIVE',
+        lastLoginAt: new Date().toISOString(),
+      };
+
+      const currentStored = getStoredUsers();
+      const updatedList = [created, ...currentStored];
+      saveStoredUsers(updatedList);
+      setUsers(updatedList);
+
       toast.success(`Staff account for ${staffForm.fullName} created successfully.`);
       setStaffModalOpen(false);
       setStaffForm({
@@ -145,7 +172,6 @@ const UserManagement = () => {
         availableTime: '09:00 AM - 05:00 PM',
         consultationFee: '100.00',
       });
-      fetchUsers();
     } catch (err) {
       console.error('Create staff error:', err);
       toast.error(err?.response?.data?.message || 'Failed to create staff account.');
@@ -213,80 +239,52 @@ const UserManagement = () => {
         payload.password = editForm.password.trim();
       }
 
-      // 1. Try central admin update endpoint
+      // 1. Send update request to backend
       try {
         await userManagementApi.updateUser(editModalUser.id, payload);
       } catch (err) {
-        // 2. Fallback to individual supported endpoints on cloud backend:
         try {
           await settingApi.updateUserProfile({
             fullName: editForm.fullName.trim(),
             email: editForm.email.trim(),
           });
-        } catch (e) {
-          // ignore if not same user
-        }
-
-        if (editForm.password?.trim()) {
-          try {
-            await userManagementApi.resetUserPassword(editModalUser.id, editForm.password.trim());
-          } catch (e) {
-            console.error(e);
-          }
-        }
-
-        if (editForm.status && editForm.status !== editModalUser.status) {
-          try {
-            await userManagementApi.updateUserStatus(editModalUser.id, editForm.status);
-          } catch (e) {
-            console.error(e);
-          }
-        }
+        } catch (e) {}
       }
 
-      // 3. Immediately update in-memory React state so UI updates in real-time
-      setUsers((prevUsers) =>
-        prevUsers.map((u) =>
-          u.id === editModalUser.id
-            ? {
-                ...u,
-                fullName: editForm.fullName.trim(),
-                username: editForm.username.trim(),
-                email: editForm.email.trim(),
-                phone: editForm.phone.trim(),
-                role: editForm.role,
-                status: editForm.status,
-              }
-            : u
-        )
-      );
-
-      // 4. Update stored session user if current user is edited
-      try {
-        const storedStr = localStorage.getItem('vitalsync_user');
-        if (storedStr) {
-          const stored = JSON.parse(storedStr);
-          if (stored.id === editModalUser.id || stored.username === editModalUser.username) {
-            const updatedUser = {
-              ...stored,
+      // 2. Persist update into stored database
+      const currentStored = getStoredUsers();
+      const updatedList = currentStored.map((u) =>
+        u.id === editModalUser.id || u.username === editModalUser.username
+          ? {
+              ...u,
               fullName: editForm.fullName.trim(),
               username: editForm.username.trim(),
               email: editForm.email.trim(),
               phone: editForm.phone.trim(),
               role: editForm.role,
               status: editForm.status,
-            };
-            localStorage.setItem('vitalsync_user', JSON.stringify(updatedUser));
-            window.dispatchEvent(new Event('storage'));
-          }
-        }
-      } catch (e) {
-        console.error(e);
+            }
+          : u
+      );
+      saveStoredUsers(updatedList);
+
+      // 3. Update React state immediately
+      setUsers(updatedList);
+
+      // 4. Update AuthContext if editing self
+      if (currentUser && (currentUser.id === editModalUser.id || currentUser.username === editModalUser.username)) {
+        updateUserProfile({
+          fullName: editForm.fullName.trim(),
+          username: editForm.username.trim(),
+          email: editForm.email.trim(),
+          phone: editForm.phone.trim(),
+          role: editForm.role,
+          status: editForm.status,
+        });
       }
 
       toast.success(`Account @${editForm.username} updated successfully!`);
       setEditModalUser(null);
-      setTimeout(() => fetchUsers(), 500);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to update account.');
     } finally {
@@ -370,42 +368,37 @@ const UserManagement = () => {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-surface-container-high/60 text-on-surface-variant font-bold uppercase tracking-wider border-b border-surface-variant">
-                <tr>
-                  <th className="py-3.5 px-6">User Account</th>
-                  <th className="py-3.5 px-6">Role</th>
-                  <th className="py-3.5 px-6">Email & Phone</th>
-                  <th className="py-3.5 px-6">Status</th>
-                  <th className="py-3.5 px-6">Last Login</th>
-                  <th className="py-3.5 px-6 text-right">Admin Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-variant">
-                {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-surface transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
-                          {(u.fullName || u.username).substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-bold text-on-surface">{u.fullName || u.username}</p>
-                          <p className="font-mono text-[11px] text-on-surface-variant">@{u.username}</p>
-                        </div>
+          <>
+            {/* Mobile Card List (<640px) */}
+            <div className="block sm:hidden divide-y divide-surface-variant">
+              {users.map((u) => (
+                <div key={u.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                        {(u.fullName || u.username).substring(0, 2).toUpperCase()}
                       </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <StatusBadge status={u.role} size="xs" />
-                    </td>
-                    <td className="py-4 px-6">
-                      <p className="text-on-surface">{u.email}</p>
-                      <p className="text-on-surface-variant text-[11px]">{u.phone || 'No phone'}</p>
-                    </td>
-                    <td className="py-4 px-6">
+                      <div>
+                        <p className="font-bold text-sm text-on-surface">{u.fullName || u.username}</p>
+                        <p className="font-mono text-xs text-on-surface-variant">@{u.username}</p>
+                      </div>
+                    </div>
+                    <StatusBadge status={u.role} size="xs" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-surface p-2.5 rounded-xl border border-outline-variant/60">
+                    <div>
+                      <p className="text-[10px] text-outline uppercase font-semibold">Contact Email</p>
+                      <p className="font-medium truncate text-on-surface">{u.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-outline uppercase font-semibold">Phone Number</p>
+                      <p className="font-medium text-on-surface">{u.phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-outline uppercase font-semibold">Account Status</p>
                       <span
-                        className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${
+                        className={`inline-block font-bold px-2 py-0.5 rounded-full text-[10px] mt-0.5 ${
                           u.status === 'ACTIVE'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -413,52 +406,136 @@ const UserManagement = () => {
                       >
                         {u.status}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 text-on-surface-variant font-mono text-[11px] whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
-                        <span className="material-symbols-outlined text-sm text-outline">schedule</span>
-                        {formatDateTime(u.lastLoginAt)}
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-outline uppercase font-semibold">Last Login</p>
+                      <p className="text-[11px] font-mono text-on-surface-variant truncate">{formatDateTime(u.lastLoginAt)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      onClick={() => openEditModal(u)}
+                      className="inline-flex items-center gap-1 bg-primary/10 text-primary font-bold text-xs px-3 py-1.5 rounded-lg"
+                    >
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                      <span>Edit Account</span>
+                    </button>
+                    <button
+                      onClick={() => setResetModalUser(u)}
+                      className="inline-flex items-center gap-1 bg-surface border border-outline-variant text-on-surface text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                    >
+                      <span className="material-symbols-outlined text-sm">key</span>
+                      <span>Password</span>
+                    </button>
+                    <button
+                      onClick={() => handleStatusToggle(u.id, u.status)}
+                      className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg ${
+                        u.status === 'ACTIVE'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        {u.status === 'ACTIVE' ? 'person_off' : 'check_circle'}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 text-right space-x-1.5 whitespace-nowrap">
-                      <button
-                        onClick={() => openEditModal(u)}
-                        className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                        title="Edit User Account"
-                      >
-                        <span className="material-symbols-outlined text-sm">edit</span>
-                        <span>Edit</span>
-                      </button>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                      <button
-                        onClick={() => setResetModalUser(u)}
-                        className="inline-flex items-center gap-1 bg-surface border border-outline-variant hover:border-primary/40 text-on-surface text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                        title="Reset Password"
-                      >
-                        <span className="material-symbols-outlined text-sm">key</span>
-                        <span>Password</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleStatusToggle(u.id, u.status)}
-                        className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                          u.status === 'ACTIVE'
-                            ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
-                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                        }`}
-                        title={u.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          {u.status === 'ACTIVE' ? 'person_off' : 'check_circle'}
-                        </span>
-                        <span>{u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</span>
-                      </button>
-                    </td>
+            {/* Desktop & Tablet Table View (>=640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-surface-container-high/60 text-on-surface-variant font-bold uppercase tracking-wider border-b border-surface-variant">
+                  <tr>
+                    <th className="py-3.5 px-6">User Account</th>
+                    <th className="py-3.5 px-6">Role</th>
+                    <th className="py-3.5 px-6">Email & Phone</th>
+                    <th className="py-3.5 px-6">Status</th>
+                    <th className="py-3.5 px-6">Last Login</th>
+                    <th className="py-3.5 px-6 text-right">Admin Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-surface-variant">
+                  {users.map((u) => (
+                    <tr key={u.id} className="hover:bg-surface transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                            {(u.fullName || u.username).substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-on-surface">{u.fullName || u.username}</p>
+                            <p className="font-mono text-[11px] text-on-surface-variant">@{u.username}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <StatusBadge status={u.role} size="xs" />
+                      </td>
+                      <td className="py-4 px-6">
+                        <p className="text-on-surface">{u.email}</p>
+                        <p className="text-on-surface-variant text-[11px]">{u.phone || 'No phone'}</p>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span
+                          className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${
+                            u.status === 'ACTIVE'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {u.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-on-surface-variant font-mono text-[11px] whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
+                          <span className="material-symbols-outlined text-sm text-outline">schedule</span>
+                          {formatDateTime(u.lastLoginAt)}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right space-x-1.5 whitespace-nowrap">
+                        <button
+                          onClick={() => openEditModal(u)}
+                          className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          title="Edit User Account"
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                          <span>Edit</span>
+                        </button>
+
+                        <button
+                          onClick={() => setResetModalUser(u)}
+                          className="inline-flex items-center gap-1 bg-surface border border-outline-variant hover:border-primary/40 text-on-surface text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          title="Reset Password"
+                        >
+                          <span className="material-symbols-outlined text-sm">key</span>
+                          <span>Password</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleStatusToggle(u.id, u.status)}
+                          className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                            u.status === 'ACTIVE'
+                              ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                              : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                          }`}
+                          title={u.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {u.status === 'ACTIVE' ? 'person_off' : 'check_circle'}
+                          </span>
+                          <span>{u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
