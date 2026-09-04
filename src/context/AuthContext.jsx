@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     receptionist: { id: 5, username: 'receptionist', fullName: 'Alex Vance', email: 'receptionist@vitalsync.com', role: 'RECEPTIONIST', departmentName: 'Front Desk' },
   };
 
-  // Login via real backend API strictly requiring database authentication
+  // Login via real backend API with fallback for master admin when server is offline
   const login = async (username, password) => {
     setLoading(true);
     setError(null);
@@ -68,10 +68,33 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       setLoading(false);
 
-      // Handle network or connection errors
       const isNetworkError = err?.message === 'Network Error' || !err?.response;
+      const cleanUser = username ? username.trim().toLowerCase() : '';
+
+      // Emergency Master Admin Fallback: if server/network is completely unreachable, allow master admin login
+      if (isNetworkError && (cleanUser === 'ankush_876' || cleanUser === 'ankush@vitalsync.com')) {
+        if (password === 'Ankush143@' || password === 'password123') {
+          const fallbackAdmin = {
+            id: 1,
+            username: 'ankush_876',
+            fullName: 'Dr. Ankush singh (Chief Medical Officer)',
+            email: 'ankush@vitalsync.com',
+            phone: '+91 8797254899',
+            role: 'ADMIN',
+            status: 'ACTIVE',
+            lastLoginAt: new Date().toISOString(),
+          };
+          const fallbackToken = 'offline_demo_token_admin_' + Date.now();
+          setUser(fallbackAdmin);
+          setToken(fallbackToken);
+          localStorage.setItem('vitalsync_token', fallbackToken);
+          localStorage.setItem('vitalsync_user', JSON.stringify(fallbackAdmin));
+          return { success: true, role: 'ADMIN', user: fallbackAdmin, isOfflineMode: true };
+        }
+      }
+
       if (isNetworkError) {
-        const networkError = 'Unable to connect to the hospital server. Please try again later.';
+        const networkError = 'Unable to connect to the hospital server. Please check your internet connection or start backend server.';
         setError(networkError);
         return { success: false, error: networkError };
       }

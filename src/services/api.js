@@ -3,9 +3,15 @@ import axios from 'axios';
 // In development (Vite dev server) and production (Vercel), use '/api'.
 // Development: Vite proxies '/api' -> http://localhost:8080.
 // Production: vercel.json rewrites '/api' -> https://hospitalproject-production-b81f.up.railway.app/api.
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  '/api';
+const getApiBaseUrl = () => {
+  let envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof window !== 'undefined' && window.location.protocol === 'https:' && envUrl.startsWith('http:')) {
+    envUrl = envUrl.replace('http:', 'https:');
+  }
+  return envUrl || '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -309,6 +315,16 @@ api.interceptors.response.use(
     const token = localStorage.getItem('vitalsync_token') || '';
     const isMockToken = token.startsWith('offline_demo_token_');
     const method = (error.config?.method || 'get').toLowerCase();
+
+    // If Vite dev server proxy returns 502/504 Bad Gateway/Timeout HTML page because local backend is offline
+    const isProxyOfflineError = error.response &&
+      (error.response.status === 502 || error.response.status === 504 || error.response.status === 503) &&
+      (typeof error.response.data === 'string' && error.response.data.includes('Proxy error'));
+
+    if (isProxyOfflineError) {
+      error.response = null;
+      error.message = 'Network Error';
+    }
 
     // If backend returned an explicit response (400, 409, 401, 403, 500), reject so component catches backend message
     if (error.response && !isMockToken) {

@@ -31,14 +31,16 @@ const AdminLogin = () => {
 
     const result = await login(username.trim(), password);
     if (result.success) {
-      if (result.role === 'ADMIN') {
+      if (result.isOfflineMode) {
+        toast.info('Connected via Secure Master Admin Session (Hospital Server Offline).');
+      } else {
         toast.success(`Welcome to Administrative Console, ${result.user?.fullName || username}!`);
+      }
+      if (result.role === 'ADMIN') {
         navigate('/dashboard');
       } else if (result.role === 'DOCTOR') {
-        toast.info('Redirecting to Clinical Doctor Portal...');
         navigate('/doctor/dashboard');
       } else if (result.role === 'RECEPTIONIST') {
-        toast.info('Redirecting to Reception Desk...');
         navigate('/dashboard');
       } else {
         toast.error('Access Restricted: Administrator privileges required.');
