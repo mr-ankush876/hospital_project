@@ -106,6 +106,8 @@ public class EmergencyIntegrationTest {
     @DisplayName("Test 4: Staff/Admin Can View All Emergencies and Update Status")
     @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testStaffUpdateEmergencyStatus() throws Exception {
+        emergencyRequestRepository.findByRequestCode("EMG-2026-9999").ifPresent(emergencyRequestRepository::delete);
+
         EmergencyRequest request = EmergencyRequest.builder()
                 .requestCode("EMG-2026-9999")
                 .patientNameSnapshot("Cardiac Patient")

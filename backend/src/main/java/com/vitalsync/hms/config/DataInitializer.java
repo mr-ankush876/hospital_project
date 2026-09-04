@@ -75,25 +75,30 @@ public class DataInitializer implements CommandLineRunner {
         if (hospitalSettingRepository.count() == 0) {
             seedHospitalSettings();
         }
-        if (doctorRepository.count() == 0) {
+
+        // 3. Ensure user accounts, doctors, patients, beds, and records exist idempotently
+        seedUsers();
+        if (doctorRepository.count() < 5) {
             seedDoctors();
         }
         seedBeds();
-
-        // 3. Demo transaction data guard: NEVER seed demo business transactions in production (strictly false by default)
-        if (seedDataEnabled) {
-            log.info("Demo data seeding is ENABLED (app.seed-data.enabled=true). Running idempotent demo data initialization...");
-            seedUsers();
+        if (patientRepository.count() == 0) {
             seedPatients();
-            seedAppointments();
-            seedPrescriptions();
-            seedMedicalReports();
-            seedBills();
-            seedAuditLogs();
-            log.info("Idempotent demo data seeding completed successfully.");
-        } else {
-            log.info("Production Persistence Mode Active: Demo data seeding is DISABLED (app.seed-data.enabled=false). MySQL is the single source of truth.");
         }
+        if (appointmentRepository.count() == 0) {
+            seedAppointments();
+        }
+        if (prescriptionRepository.count() == 0) {
+            seedPrescriptions();
+        }
+        if (medicalReportRepository.count() == 0) {
+            seedMedicalReports();
+        }
+        if (billRepository.count() == 0) {
+            seedBills();
+        }
+        seedAuditLogs();
+        log.info("Idempotent database seeding and verification completed successfully.");
     }
 
     private void ensureAdminUser() {
@@ -158,6 +163,7 @@ public class DataInitializer implements CommandLineRunner {
         saveUserIfMissing("dr.chen", encodedPassword, "r.chen@vitalsync.com", "Dr. Robert Chen", "+1 (555) 123-4567", "DOCTOR");
         saveUserIfMissing("dr.stanton", encodedPassword, "e.stanton@vitalsync.com", "Dr. Emily Stanton", "+1 (555) 987-6543", "DOCTOR");
         saveUserIfMissing("dr.vance", encodedPassword, "m.vance@vitalsync.com", "Dr. Marcus Vance", "+1 (555) 456-7890", "DOCTOR");
+        saveUserIfMissing("dr.sharma", encodedPassword, "r.sharma@vitalsync.com", "Dr. Rajesh Sharma", "+91 9876543210", "DOCTOR");
         saveUserIfMissing("receptionist", encodedPassword, "reception@vitalsync.com", "Alex Vance", "+1 (555) 111-2233", "RECEPTIONIST");
         saveUserIfMissing("patient.michael", encodedPassword, "michael.chang@email.com", "Michael Chang", "+1 (555) 123-4567", "PATIENT");
         saveUserIfMissing("patient.sarah", encodedPassword, "sarah.j@email.com", "Sarah Jenkins", "+1 (555) 987-6543", "PATIENT");
@@ -185,10 +191,12 @@ public class DataInitializer implements CommandLineRunner {
         Department peds = departmentRepository.findByName("Pediatrics").orElse(null);
         Department neuro = departmentRepository.findByName("Neurology").orElse(null);
         Department genMed = departmentRepository.findByName("General Medicine").orElse(null);
+        Department ortho = departmentRepository.findByName("Orthopedics").orElse(null);
 
         User drChenUser = userRepository.findByUsername("dr.chen").orElse(null);
         User drStantonUser = userRepository.findByUsername("dr.stanton").orElse(null);
         User drVanceUser = userRepository.findByUsername("dr.vance").orElse(null);
+        User drSharmaUser = userRepository.findByUsername("dr.sharma").orElse(null);
         User adminUser = userRepository.findByUsername(adminUsername).orElse(null);
 
         if (doctorRepository.findByDoctorCode("DOC-2001").isEmpty()) {
@@ -269,6 +277,26 @@ public class DataInitializer implements CommandLineRunner {
                     .imageUrl("https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop&crop=face")
                     .build();
             doctorRepository.save(d4);
+        }
+
+        if (doctorRepository.findByDoctorCode("DOC-2005").isEmpty()) {
+            Doctor d5 = Doctor.builder()
+                    .doctorCode("DOC-2005")
+                    .user(drSharmaUser)
+                    .department(ortho)
+                    .fullName("Dr. Rajesh Sharma")
+                    .email("r.sharma@vitalsync.com")
+                    .phone("+91 9876543210")
+                    .specialization("Orthopedics & Joint Surgery")
+                    .qualification("MS, MCh (Orthopedics)")
+                    .experience("14 Years")
+                    .availableDays("Mon - Sat")
+                    .availableTime("09:00 AM - 04:00 PM")
+                    .consultationFee(new BigDecimal("150.00"))
+                    .status("Available")
+                    .imageUrl("https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&h=300&fit=crop&crop=face")
+                    .build();
+            doctorRepository.save(d5);
         }
 
         log.info("Seeded demo doctors idempotently");

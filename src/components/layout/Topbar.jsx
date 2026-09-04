@@ -502,7 +502,7 @@ const Topbar = ({ onOpenMobile }) => {
                                   {b.billCode} • {b.patientName || b.patient?.fullName}
                                 </p>
                                 <p className="text-xs text-on-surface-variant">
-                                  Amount: ${b.totalAmount} • {b.paymentMethod} ({b.billDate})
+                                  Amount: ₹{b.totalAmount} • {b.paymentMethod} ({b.billDate})
                                 </p>
                               </div>
                             </div>

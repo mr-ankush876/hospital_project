@@ -30,7 +30,13 @@ public class PhoneValidationServiceImpl implements PhoneValidationService {
             Phonenumber.PhoneNumber proto = phoneUtil.parse(clean, region);
             validateProto(proto);
             return phoneUtil.format(proto, PhoneNumberUtil.PhoneNumberFormat.E164);
-        } catch (NumberParseException e) {
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            String digits = clean.replaceAll("[^0-9]", "");
+            if (digits.length() == 10 && ("IN".equalsIgnoreCase(region) || "ZZ".equalsIgnoreCase(region))) {
+                return "+91" + digits;
+            }
             throw new BadRequestException("Please enter a valid phone number for the selected country.");
         }
     }

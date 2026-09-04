@@ -177,6 +177,30 @@ public class NotificationServiceImpl implements NotificationService {
         return dispatch(callerPhone, alertMsg, request.getPatientNameSnapshot(), "SMS");
     }
 
+    @Override
+    public List<NotificationResultDto> notifyBedReservationConfirmation(com.vitalsync.hms.entity.BedReservation reservation) {
+        List<NotificationResultDto> results = new ArrayList<>();
+        if (reservation == null) return results;
+
+        Patient patient = reservation.getPatient();
+        com.vitalsync.hms.entity.Bed bed = reservation.getBed();
+
+        if (patient != null) {
+            String bedInfo = (bed != null) ? "Bed " + bed.getBedNumber() : "your requested bed";
+            String deptInfo = (reservation.getDepartment() != null) ? " in " + reservation.getDepartment().getName() : "";
+            String patientMsg = String.format(
+                    "VitalSync HMS Alert: Dear %s, your bed reservation %s for %s%s has been CONFIRMED! Your bed is available and ready for admission.",
+                    patient.getFullName(),
+                    reservation.getReservationCode(),
+                    bedInfo,
+                    deptInfo
+            );
+            results.add(dispatch(patient.getPhone(), patientMsg, patient.getFullName(), "SMS"));
+            results.add(dispatch(patient.getPhone(), patientMsg, patient.getFullName(), "WHATSAPP"));
+        }
+        return results;
+    }
+
     /**
      * Centralized dispatch pipeline enforcing:
      * 1. No hardcoded country code assumptions.

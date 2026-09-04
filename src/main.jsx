@@ -70,7 +70,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (allowedRoles && allowedRoles.length > 0) {
     const hasPermission = allowedRoles.includes(user?.role) || user?.role === 'ADMIN';
     if (!hasPermission) {
-      if (user?.role === 'PATIENT') return <Navigate to="/patient/dashboard" replace />;
+      if (user?.role === 'PATIENT') return <Navigate to="/patient/appointments" replace />;
       if (user?.role === 'DOCTOR') return <Navigate to="/doctor/dashboard" replace />;
       return <Navigate to="/dashboard" replace />;
     }
@@ -105,11 +105,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             {/* 2. Patient Self-Service Portal */}
             <Route
               path="/patient/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['PATIENT']}>
-                  <Layout><PatientDashboard /></Layout>
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/patient/appointments" replace />}
             />
             <Route
               path="/patient/book-appointment"

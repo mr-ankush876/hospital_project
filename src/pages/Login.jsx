@@ -66,7 +66,7 @@ const Login = () => {
         toast.success(`Welcome back, ${result.user?.fullName || username}!`);
       }
       if (result.role === 'PATIENT') {
-        navigate('/patient/dashboard');
+        navigate('/patient/appointments');
       } else if (result.role === 'DOCTOR') {
         navigate('/doctor/dashboard');
       } else {
@@ -111,7 +111,7 @@ const Login = () => {
     const result = await registerPatient(payload);
     if (result.success) {
       toast.success('Registration successful! Welcome to the VitalSync Patient Portal.');
-      navigate('/patient/dashboard');
+      navigate('/patient/appointments');
     } else {
       toast.error(result.error || 'Registration failed.');
     }

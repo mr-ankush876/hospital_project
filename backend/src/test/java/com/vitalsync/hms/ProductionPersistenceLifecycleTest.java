@@ -129,6 +129,7 @@ public class ProductionPersistenceLifecycleTest {
     @DisplayName("TEST C: Create doctor -> Restart -> Verify doctor still exists")
     @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testC_CreateDoctorPersistsAcrossRestart() {
+        doctorRepository.findByEmail("test.c.specialist@vitalsync.com").ifPresent(doctorRepository::delete);
         Department dept = departmentRepository.findAll().stream().findFirst().orElseThrow();
 
         DoctorDto doctorDto = DoctorDto.builder()
@@ -169,6 +170,11 @@ public class ProductionPersistenceLifecycleTest {
         while (nextDate.getDayOfWeek().getValue() != 1 && nextDate.getDayOfWeek().getValue() != 3 && nextDate.getDayOfWeek().getValue() != 5) {
             nextDate = nextDate.plusDays(1);
         }
+
+        // Clean existing test appointment for doctor at this date/time if present
+        appointmentRepository.findByDoctorIdAndAppointmentDate(doctor.getId(), nextDate).stream()
+                .filter(a -> "09:00 AM".equals(a.getAppointmentTime()))
+                .forEach(appointmentRepository::delete);
 
         AppointmentDto aptDto = AppointmentDto.builder()
                 .doctorId(doctor.getId())

@@ -2,6 +2,7 @@ package com.vitalsync.hms.service;
 
 import com.vitalsync.hms.dto.NotificationResultDto;
 import com.vitalsync.hms.entity.Appointment;
+import com.vitalsync.hms.entity.BedReservation;
 import com.vitalsync.hms.entity.EmergencyRequest;
 
 import java.util.List;
@@ -37,4 +38,9 @@ public interface NotificationService {
      * Dispatches urgent emergency notification to on-duty team and logs normalized caller callback.
      */
     NotificationResultDto notifyEmergencyAlert(EmergencyRequest request);
+
+    /**
+     * Notifies patient instantly when their bed reservation is confirmed/approved.
+     */
+    List<NotificationResultDto> notifyBedReservationConfirmation(BedReservation reservation);
 }

@@ -17,6 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.vitalsync.hms.entity.Department;
+import com.vitalsync.hms.entity.User;
+import com.vitalsync.hms.repository.DepartmentRepository;
+import com.vitalsync.hms.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 @Service
 @RequiredArgsConstructor
 public class DoctorServiceImpl implements DoctorService {
@@ -25,6 +31,9 @@ public class DoctorServiceImpl implements DoctorService {
     private final AppointmentRepository appointmentRepository;
     private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
     private final PrescriptionRepository prescriptionRepository;
+    private final DepartmentRepository departmentRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<DoctorDto> getAll(String search, String specialization, String status) {
@@ -118,20 +127,68 @@ public class DoctorServiceImpl implements DoctorService {
             throw new ConflictException("Doctor with email " + dto.getEmail() + " already exists");
         });
 
+        long count = doctorRepository.count();
+        String doctorCode = String.format("DOC-%04d", 2000 + count + 1);
+
+        // Resolve Department if departmentId or departmentName provided
+        Department department = null;
+        if (dto.getDepartmentId() != null) {
+            department = departmentRepository.findById(dto.getDepartmentId()).orElse(null);
+        }
+        if (department == null && dto.getDepartmentName() != null && !dto.getDepartmentName().isBlank()) {
+            department = departmentRepository.findByName(dto.getDepartmentName().trim()).orElse(null);
+        }
+
+        // Auto-create/link User account if not provided
+        User doctorUser = null;
+        if (dto.getUserId() != null) {
+            doctorUser = userRepository.findById(dto.getUserId()).orElse(null);
+        }
+        if (doctorUser == null) {
+            String defaultUsername = (dto.getUsername() != null && !dto.getUsername().isBlank())
+                    ? dto.getUsername().trim()
+                    : "dr." + dto.getFullName().replaceAll("[^a-zA-Z]", "").toLowerCase();
+
+            if (!userRepository.existsByUsername(defaultUsername)) {
+                String phoneStr = dto.getPhone();
+                try {
+                    phoneStr = phoneValidationService.validateAndNormalize(dto.getPhone());
+                } catch (Exception ignored) {}
+
+                doctorUser = User.builder()
+                        .username(defaultUsername)
+                        .password(passwordEncoder.encode("password123"))
+                        .email(dto.getEmail())
+                        .fullName(dto.getFullName())
+                        .phone(phoneStr)
+                        .role("DOCTOR")
+                        .status("ACTIVE")
+                        .build();
+                doctorUser = userRepository.save(doctorUser);
+            } else {
+                doctorUser = userRepository.findByUsername(defaultUsername).orElse(null);
+            }
+        }
+
         Doctor doctor = new Doctor();
+        doctor.setDoctorCode(doctorCode);
+        doctor.setUser(doctorUser);
+        doctor.setDepartment(department);
         doctor.setFullName(dto.getFullName());
         doctor.setEmail(dto.getEmail());
-        doctor.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
+        try {
+            doctor.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
+        } catch (Exception e) {
+            doctor.setPhone(dto.getPhone() != null ? dto.getPhone().trim() : "+1 (555) 000-0000");
+        }
         doctor.setSpecialization(dto.getSpecialization());
         doctor.setQualification(dto.getQualification());
         doctor.setExperience(dto.getExperience());
         doctor.setAvailableDays(dto.getAvailableDays() != null ? dto.getAvailableDays() : "Mon, Wed, Fri");
         doctor.setAvailableTime(dto.getAvailableTime() != null ? dto.getAvailableTime() : "09:00 AM - 05:00 PM");
+        doctor.setConsultationFee(dto.getConsultationFee() != null ? dto.getConsultationFee() : new java.math.BigDecimal("100.00"));
         doctor.setStatus(dto.getStatus() != null ? dto.getStatus() : "Available");
         doctor.setImageUrl(dto.getImageUrl());
-
-        long count = doctorRepository.count();
-        doctor.setDoctorCode(String.format("DOC-%04d", 3000 + count + (System.currentTimeMillis() % 9000)));
 
         Doctor saved = doctorRepository.save(doctor);
         return mapToDto(saved);
@@ -143,14 +200,26 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + id));
 
+        if (dto.getDepartmentId() != null) {
+            Department dept = departmentRepository.findById(dto.getDepartmentId()).orElse(null);
+            if (dept != null) doctor.setDepartment(dept);
+        }
+
         doctor.setFullName(dto.getFullName());
         doctor.setEmail(dto.getEmail());
-        doctor.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
+        try {
+            doctor.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
+        } catch (Exception e) {
+            doctor.setPhone(dto.getPhone() != null ? dto.getPhone().trim() : doctor.getPhone());
+        }
         doctor.setSpecialization(dto.getSpecialization());
         doctor.setQualification(dto.getQualification());
         doctor.setExperience(dto.getExperience());
         doctor.setAvailableDays(dto.getAvailableDays());
         doctor.setAvailableTime(dto.getAvailableTime());
+        if (dto.getConsultationFee() != null) {
+            doctor.setConsultationFee(dto.getConsultationFee());
+        }
         if (dto.getStatus() != null) {
             doctor.setStatus(dto.getStatus());
         }
@@ -185,6 +254,10 @@ public class DoctorServiceImpl implements DoctorService {
         return DoctorDto.builder()
                 .id(d.getId())
                 .doctorCode(d.getDoctorCode())
+                .userId(d.getUser() != null ? d.getUser().getId() : null)
+                .username(d.getUser() != null ? d.getUser().getUsername() : null)
+                .departmentId(d.getDepartment() != null ? d.getDepartment().getId() : null)
+                .departmentName(d.getDepartment() != null ? d.getDepartment().getName() : d.getSpecialization())
                 .fullName(d.getFullName())
                 .email(d.getEmail())
                 .phone(d.getPhone())
@@ -193,6 +266,7 @@ public class DoctorServiceImpl implements DoctorService {
                 .experience(d.getExperience())
                 .availableDays(d.getAvailableDays())
                 .availableTime(d.getAvailableTime())
+                .consultationFee(d.getConsultationFee())
                 .status(d.getStatus())
                 .imageUrl(d.getImageUrl())
                 .createdAt(d.getCreatedAt())

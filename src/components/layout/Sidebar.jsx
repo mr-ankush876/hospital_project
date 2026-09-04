@@ -18,7 +18,6 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
     if (user.role === 'PATIENT') {
       return [
-        { label: 'Patient Dashboard', icon: 'dashboard', path: '/patient/dashboard' },
         { label: 'Emergency 24/7', icon: 'emergency', path: '/patient/emergency', highlight: true },
         { label: 'Book Appointment', icon: 'add_circle', path: '/patient/book-appointment' },
         { label: 'My Appointments', icon: 'event_available', path: '/patient/appointments' },

@@ -45,7 +45,7 @@ const PatientBilling = () => {
           <span className="material-symbols-outlined text-2xl text-amber-600">account_balance_wallet</span>
           <div>
             <p className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Outstanding Balance</p>
-            <p className="text-lg font-extrabold text-on-surface">${totalDue.toFixed(2)}</p>
+            <p className="text-lg font-extrabold text-on-surface">₹{totalDue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
         </div>
       </div>
@@ -79,7 +79,7 @@ const PatientBilling = () => {
                 <div className="text-left sm:text-right">
                   <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider block">Total Amount</span>
                   <span className="text-xl font-black text-on-surface">
-                    ${Number(bill.totalAmount || 0).toFixed(2)}
+                    ₹{Number(bill.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -88,19 +88,19 @@ const PatientBilling = () => {
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs bg-surface p-4 rounded-xl border border-outline-variant/40">
                 <div>
                   <span className="text-on-surface-variant block text-[11px]">Consultation Fee</span>
-                  <span className="font-bold text-on-surface">${Number(bill.consultationFee || 0).toFixed(2)}</span>
+                  <span className="font-bold text-on-surface">₹{Number(bill.consultationFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div>
                   <span className="text-on-surface-variant block text-[11px]">Medications</span>
-                  <span className="font-bold text-on-surface">${Number(bill.medicineCharges || 0).toFixed(2)}</span>
+                  <span className="font-bold text-on-surface">₹{Number(bill.medicineCharges || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div>
                   <span className="text-on-surface-variant block text-[11px]">Other Diagnostics</span>
-                  <span className="font-bold text-on-surface">${Number(bill.otherCharges || 0).toFixed(2)}</span>
+                  <span className="font-bold text-on-surface">₹{Number(bill.otherCharges || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div>
                   <span className="text-on-surface-variant block text-[11px]">Discount / Insurance</span>
-                  <span className="font-bold text-emerald-600">-${Number(bill.discount || 0).toFixed(2)}</span>
+                  <span className="font-bold text-emerald-600">-₹{Number(bill.discount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div>
                   <span className="text-on-surface-variant block text-[11px]">Payment Method</span>

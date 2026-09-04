@@ -42,7 +42,7 @@ const AdminLogin = () => {
         navigate('/dashboard');
       } else {
         toast.error('Access Restricted: Administrator privileges required.');
-        navigate('/patient/dashboard');
+        navigate('/patient/appointments');
       }
     } else {
       toast.error(result.error || 'Administrator authentication failed. Please verify credentials.');

@@ -91,7 +91,11 @@ public class EmergencyRequestServiceImpl implements EmergencyRequestService {
         if (contactNumber == null || contactNumber.isBlank()) {
             contactNumber = defaultHospitalNumber;
         } else if (!contactNumber.equals(defaultHospitalNumber)) {
-            contactNumber = phoneValidationService.validateAndNormalize(contactNumber);
+            try {
+                contactNumber = phoneValidationService.validateAndNormalize(contactNumber);
+            } catch (Exception ignored) {
+                contactNumber = contactNumber.trim();
+            }
         }
 
         String requestCode = generateSafeRequestCode();

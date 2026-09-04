@@ -10,7 +10,7 @@ const PublicNavbar = () => {
 
   const getPortalLink = () => {
     if (!user) return '/login';
-    if (user.role === 'PATIENT') return '/patient/dashboard';
+    if (user.role === 'PATIENT') return '/patient/appointments';
     if (user.role === 'DOCTOR') return '/doctor/dashboard';
     return '/dashboard';
   };

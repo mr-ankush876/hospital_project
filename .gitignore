@@ -45,7 +45,12 @@ Thumbs.db
 .env.test.local
 .env.production.local
 
-# Zip archives (don't zip nested zips)
+# Database storage
+backend/data/
+data/
+# Zip archives
 *.zip
 *.tar.gz
 *.rar
+
+

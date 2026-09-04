@@ -14,6 +14,7 @@ import com.vitalsync.hms.repository.BedReservationRepository;
 import com.vitalsync.hms.repository.DepartmentRepository;
 import com.vitalsync.hms.repository.PatientRepository;
 import com.vitalsync.hms.service.BedService;
+import com.vitalsync.hms.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ public class BedServiceImpl implements BedService {
     private final BedReservationRepository bedReservationRepository;
     private final DepartmentRepository departmentRepository;
     private final PatientRepository patientRepository;
+    private final NotificationService notificationService;
 
     private static final List<String> VALID_STATUSES = Arrays.asList("AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE");
     private static final List<String> VALID_RESERVATION_STATUSES = Arrays.asList("PENDING", "CONFIRMED", "CANCELLED", "EXPIRED");
@@ -203,6 +205,16 @@ public class BedServiceImpl implements BedService {
             }
             bed.setStatus("RESERVED");
             bedRepository.save(bed);
+        } else {
+            // Auto-assign an available bed in department matching bed type if available
+            Long deptId = dto.getDepartmentId();
+            String requestedBedType = dto.getBedType() != null ? dto.getBedType().toUpperCase() : null;
+            List<Bed> availBeds = bedRepository.searchBeds(deptId, requestedBedType, "AVAILABLE", null);
+            if (!availBeds.isEmpty()) {
+                bed = availBeds.get(0);
+                bed.setStatus("RESERVED");
+                bedRepository.save(bed);
+            }
         }
 
         Department department = null;
@@ -247,16 +259,33 @@ public class BedServiceImpl implements BedService {
         if (notes != null) res.setNotes(notes);
 
         if ("CANCELLED".equals(upperStatus) || "EXPIRED".equals(upperStatus)) {
-            if (res.getBed() != null && "RESERVED".equals(res.getBed().getStatus())) {
+            if (res.getBed() != null && ("RESERVED".equals(res.getBed().getStatus()) || "OCCUPIED".equals(res.getBed().getStatus()))) {
                 res.getBed().setStatus("AVAILABLE");
+                res.getBed().setCurrentPatient(null);
                 bedRepository.save(res.getBed());
             }
         } else if ("CONFIRMED".equals(upperStatus)) {
+            if (res.getBed() == null) {
+                Long deptId = res.getDepartment() != null ? res.getDepartment().getId() : null;
+                String bedType = res.getBedType();
+                List<Bed> availBeds = bedRepository.searchBeds(deptId, bedType, "AVAILABLE", null);
+                if (!availBeds.isEmpty()) {
+                    res.setBed(availBeds.get(0));
+                }
+            }
             if (res.getBed() != null) {
                 res.getBed().setStatus("OCCUPIED");
                 res.getBed().setCurrentPatient(res.getPatient());
-                res.getBed().setAdmissionDate(LocalDateTime.now());
+                if (res.getBed().getAdmissionDate() == null) {
+                    res.getBed().setAdmissionDate(LocalDateTime.now());
+                }
                 bedRepository.save(res.getBed());
+            }
+
+            try {
+                notificationService.notifyBedReservationConfirmation(res);
+            } catch (Exception e) {
+                // Log and swallow so status update succeeds even if notification dispatch encounters network issue
             }
         }
 
