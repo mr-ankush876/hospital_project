@@ -103,6 +103,7 @@ class AuthControllerIntegrationTest {
                 .firstName("Jane")
                 .lastName("Doe")
                 .email("jane.doe@example.com")
+                .gender("Female")
                 .phone("+91 98765 43210")
                 .dob(LocalDate.of(1998, 4, 15))
                 .bloodGroup("B+")

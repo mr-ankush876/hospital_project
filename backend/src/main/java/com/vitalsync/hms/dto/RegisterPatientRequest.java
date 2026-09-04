@@ -39,6 +39,10 @@ public class RegisterPatientRequest {
     @NotBlank(message = "Phone number is required")
     private String phone;
 
+    @NotBlank(message = "Gender is required")
+    @Pattern(regexp = "^(Male|Female|Transgender)$", message = "Gender must be one of: Male, Female, Transgender")
+    private String gender;
+
     @NotBlank(message = "Blood group is required")
     @Pattern(regexp = "^(A\\+|A\\-|B\\+|B\\-|AB\\+|AB\\-|O\\+|O\\-)$", message = "Blood group must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-")
     private String bloodGroup;

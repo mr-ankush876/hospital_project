@@ -139,6 +139,12 @@ public class AuthServiceImpl implements AuthService {
         }
         int age = Period.between(request.getDob(), LocalDate.now()).getYears();
 
+        String gender = request.getGender() != null ? request.getGender().trim() : "";
+        java.util.List<String> validGenders = java.util.List.of("Male", "Female", "Transgender");
+        if (!validGenders.contains(gender)) {
+            throw new BadRequestException("Invalid gender selected. Must be one of: Male, Female, Transgender");
+        }
+
         String bloodGroup = request.getBloodGroup() != null ? request.getBloodGroup().trim() : "";
         java.util.List<String> validBloodGroups = java.util.List.of("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-");
         if (!validBloodGroups.contains(bloodGroup)) {
@@ -178,7 +184,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(fullName)
                 .dob(request.getDob())
                 .age(age)
-                .gender("Other")
+                .gender(gender)
                 .bloodGroup(bloodGroup)
                 .phone(validatedPhone)
                 .email(email)

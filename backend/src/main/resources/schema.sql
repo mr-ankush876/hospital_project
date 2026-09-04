@@ -26,7 +26,7 @@ CREATE TABLE patients (
     full_name VARCHAR(100) NOT NULL,
     dob DATE NOT NULL,
     age INT NOT NULL,
-    gender VARCHAR(10) NOT NULL,
+    gender VARCHAR(20) NOT NULL,
     blood_group VARCHAR(10) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(100),

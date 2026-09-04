@@ -36,7 +36,7 @@ public class Patient {
     @Column(nullable = false)
     private Integer age;
 
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private String gender;
 
     @Column(name = "blood_group", nullable = false, length = 10)

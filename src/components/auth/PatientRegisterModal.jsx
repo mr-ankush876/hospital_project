@@ -3,7 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import PhoneNumberInput from '../common/PhoneNumberInput';
 
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const GENDER_OPTIONS = ['Male', 'Female', 'Transgender'];
+const BLOOD_GROUPS = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
 const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
   const { registerPatient, loading } = useAuth();
@@ -14,6 +15,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
     lastName: '',
     email: '',
     dob: '',
+    gender: 'Male',
     phone: '+91 ',
     bloodGroup: 'O+',
     password: '',
@@ -44,6 +46,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
     const fnValid = fn.length > 0 && fn.length <= 50 && /^[A-Za-z\s'\-]+$/.test(fn) && !/^\d+$/.test(fn);
     const lnValid = ln.length > 0 && ln.length <= 50 && /^[A-Za-z\s'\-]+$/.test(ln) && !/^\d+$/.test(ln);
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const genderValid = GENDER_OPTIONS.includes(formData.gender);
 
     let dobValid = false;
     let computedAge = null;
@@ -82,7 +85,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
     if (hasDigit) score++;
     if (hasSpecial) score++;
 
-    const isFormValid = fnValid && lnValid && emailValid && dobValid && phoneValid && bloodGroupValid && passwordValid && confirmMatch;
+    const isFormValid = fnValid && lnValid && emailValid && dobValid && genderValid && phoneValid && bloodGroupValid && passwordValid && confirmMatch;
 
     return {
       fnValid,
@@ -90,6 +93,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
       emailValid,
       dobValid,
       computedAge,
+      genderValid,
       phoneValid,
       bloodGroupValid,
       hasMinLen,
@@ -116,6 +120,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
       lastName: formData.lastName.trim(),
       email: formData.email.trim().toLowerCase(),
       dob: formData.dob,
+      gender: formData.gender,
       phone: formData.phone.trim(),
       bloodGroup: formData.bloodGroup,
       password: formData.password,
@@ -150,7 +155,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-primary/10 text-primary mb-1.5">
             <span className="material-symbols-outlined text-sm">verified_user</span>
-            Self-Service Patient Registration (8 Fields)
+            Self-Service Patient Registration
           </div>
           <h2 className="font-headline-md text-xl sm:text-2xl font-extrabold text-on-surface">New Patient Registration</h2>
           <p className="text-xs text-on-surface-variant mt-0.5">
@@ -222,7 +227,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
           </div>
         </div>
 
-        {/* 3. Email Address */}
+        {/* Email Address */}
         <div>
           <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
             Email Address (Your Login Username) <span className="text-rose-500">*</span>
@@ -253,8 +258,8 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
           )}
         </div>
 
-        {/* 4. Date of Birth & 6. Blood Group */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        {/* Date of Birth, Gender & Blood Group */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
@@ -282,9 +287,26 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
             {touched.dob && !validation.dobValid && (
               <p className="text-[11px] text-rose-500 font-medium mt-1 flex items-center gap-1">
                 <span className="material-symbols-outlined text-xs">error</span>
-                Please select a valid past or present date.
+                Please select a valid date.
               </p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+              Gender <span className="text-rose-500">*</span>
+            </label>
+            <select
+              value={formData.gender}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              className="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
+            >
+              {GENDER_OPTIONS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -298,7 +320,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
             >
               {BLOOD_GROUPS.map((bg) => (
                 <option key={bg} value={bg}>
-                  Blood Type {bg}
+                  {bg}
                 </option>
               ))}
             </select>
