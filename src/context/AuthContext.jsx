@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     receptionist: { id: 5, username: 'receptionist', fullName: 'Alex Vance', email: 'receptionist@vitalsync.com', role: 'RECEPTIONIST', departmentName: 'Front Desk' },
   };
 
-  // Login via real backend API with resilient offline fallback
+  // Login via real backend API strictly requiring database authentication
   const login = async (username, password) => {
     setLoading(true);
     setError(null);
@@ -68,41 +68,21 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       setLoading(false);
 
-      // Check for Network Error (Backend offline / unreachable)
+      // Handle network or connection errors
       const isNetworkError = err?.message === 'Network Error' || !err?.response;
-
       if (isNetworkError) {
-        const lowerUser = username.toLowerCase().trim();
-        const demoUser = DEMO_USERS[lowerUser] || {
-          id: 99,
-          username: lowerUser,
-          fullName: username.includes('admin') || lowerUser === 'ankush_876' ? 'Dr. Ankush singh (Chief Medical Officer)' : 'Healthcare User',
-          email: `${lowerUser}@vitalsync.com`,
-          role: lowerUser.includes('doc') ? 'DOCTOR' : (lowerUser.includes('rec') ? 'RECEPTIONIST' : 'ADMIN'),
-        };
-
-        const mockToken = `offline_demo_token_${demoUser.role}_${Date.now()}`;
-        setUser(demoUser);
-        setToken(mockToken);
-
-        localStorage.setItem('vitalsync_token', mockToken);
-        localStorage.setItem('vitalsync_user', JSON.stringify(demoUser));
-
-        return {
-          success: true,
-          role: demoUser.role,
-          user: demoUser,
-          isOfflineDemo: true,
-        };
+        const networkError = 'Unable to connect to the hospital server. Please try again later.';
+        setError(networkError);
+        return { success: false, error: networkError };
       }
 
       const rawMsg = err?.response?.data?.message || err?.response?.data?.error;
       const errorMessage =
         (typeof rawMsg === 'string' && rawMsg.trim() ? rawMsg : null) ||
-        (err?.response?.status === 401 ? 'Invalid username or password. Please check capitalization.' : null) ||
-        (err?.response?.status === 403 ? 'Account is not active or access is denied.' : null) ||
-        (err?.response?.status === 502 || err?.response?.status === 504 ? 'Railway server is starting up. Please try again in a few seconds.' : null) ||
-        'Login failed. Please verify your credentials and try again.';
+        (err?.response?.status === 401 ? 'Invalid email/username or password.' : null) ||
+        (err?.response?.status === 403 ? 'You are not authorized to access this area.' : null) ||
+        (err?.response?.status === 409 ? 'An account with this email/username already exists.' : null) ||
+        'Authentication failed. Please verify your credentials and try again.';
 
       setError(errorMessage);
       return { success: false, error: errorMessage };

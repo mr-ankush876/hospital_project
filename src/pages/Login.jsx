@@ -51,11 +51,7 @@ const Login = () => {
         return;
       }
 
-      if (result.isOfflineDemo) {
-        toast.info(`Logged in as ${result.user?.fullName} (Offline Mode). Run start-windows.bat to connect to live DB.`);
-      } else {
-        toast.success(`Welcome back, ${result.user?.fullName || username}!`);
-      }
+      toast.success(`Welcome back, ${result.user?.fullName || username}!`);
       if (result.role === 'PATIENT') {
         navigate('/patient/appointments');
       } else if (result.role === 'DOCTOR') {
