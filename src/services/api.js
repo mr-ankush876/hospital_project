@@ -8,8 +8,9 @@ const getApiBaseUrl = () => {
   if (envUrl && typeof window !== 'undefined' && window.location.protocol === 'https:' && envUrl.startsWith('http:')) {
     envUrl = envUrl.replace('http:', 'https:');
   }
-  // Always target live Railway backend directly to guarantee 100% connectivity from any domain or localhost
-  return (envUrl && envUrl !== '/api') ? envUrl : 'https://hospitalproject-production-b81f.up.railway.app/api';
+  if (envUrl) return envUrl;
+  // Use '/api' so Vercel rewrites (vercel.json) and Vite proxies (vite.config.js) target backend seamlessly without CORS preflight failures
+  return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
