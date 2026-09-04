@@ -22,4 +22,5 @@ public interface BedService {
     BedReservationDto getReservationById(Long id);
     BedReservationDto createReservation(BedReservationDto dto);
     BedReservationDto updateReservationStatus(Long id, String status, String notes);
+    BedReservationDto updateReservationStatus(Long id, String status, String notes, Long bedId);
 }

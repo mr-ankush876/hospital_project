@@ -247,6 +247,12 @@ public class BedServiceImpl implements BedService {
     @Override
     @Transactional
     public BedReservationDto updateReservationStatus(Long id, String status, String notes) {
+        return updateReservationStatus(id, status, notes, null);
+    }
+
+    @Override
+    @Transactional
+    public BedReservationDto updateReservationStatus(Long id, String status, String notes, Long bedId) {
         BedReservation res = bedReservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with ID: " + id));
 
@@ -265,14 +271,26 @@ public class BedServiceImpl implements BedService {
                 bedRepository.save(res.getBed());
             }
         } else if ("CONFIRMED".equals(upperStatus)) {
-            if (res.getBed() == null) {
+            // Staff manually assigned a bedId or system finds available bed
+            if (bedId != null) {
+                Bed specifiedBed = bedRepository.findById(bedId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Bed not found with ID: " + bedId));
+                res.setBed(specifiedBed);
+            } else if (res.getBed() == null) {
                 Long deptId = res.getDepartment() != null ? res.getDepartment().getId() : null;
                 String bedType = res.getBedType();
                 List<Bed> availBeds = bedRepository.searchBeds(deptId, bedType, "AVAILABLE", null);
                 if (!availBeds.isEmpty()) {
                     res.setBed(availBeds.get(0));
+                } else {
+                    // Try to find any available bed in the department
+                    List<Bed> anyAvailInDept = bedRepository.searchBeds(deptId, null, "AVAILABLE", null);
+                    if (!anyAvailInDept.isEmpty()) {
+                        res.setBed(anyAvailInDept.get(0));
+                    }
                 }
             }
+
             if (res.getBed() != null) {
                 res.getBed().setStatus("OCCUPIED");
                 res.getBed().setCurrentPatient(res.getPatient());

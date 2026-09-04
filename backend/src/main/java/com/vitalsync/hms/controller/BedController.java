@@ -121,10 +121,11 @@ public class BedController {
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<BedReservationDto> updateReservationStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
-        String status = body.get("status");
-        String notes = body.get("notes");
-        BedReservationDto updated = bedService.updateReservationStatus(id, status, notes);
+            @RequestBody Map<String, Object> body) {
+        String status = (String) body.get("status");
+        String notes = (String) body.get("notes");
+        Long bedId = body.get("bedId") != null ? Long.valueOf(body.get("bedId").toString()) : null;
+        BedReservationDto updated = bedService.updateReservationStatus(id, status, notes, bedId);
         return ResponseEntity.ok(updated);
     }
 }

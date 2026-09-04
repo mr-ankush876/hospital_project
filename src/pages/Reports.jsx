@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { reportApi, appointmentApi, patientApi, doctorApi, billApi } from '../services/api';
+import { reportApi, appointmentApi, patientApi, doctorApi, billApi, bedApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ErrorState from '../components/common/ErrorState';
@@ -34,6 +34,11 @@ const Reports = () => {
     billsByStatus: {},
     doctorWorkloads: [],
     recentRegistrations: [],
+    totalBeds: 0,
+    occupiedBeds: 0,
+    availableBeds: 0,
+    availableIcuBeds: 0,
+    pendingBedReservations: 0,
   });
 
   useEffect(() => {
@@ -45,18 +50,54 @@ const Reports = () => {
     setError(null);
     try {
       // Try backend report API or aggregate live from endpoints
-      const [statsRes, aptRes, patRes, docRes, billRes] = await Promise.all([
-        reportApi.getSummary({ range: dateRange }).catch(() => null),
+      const [statsRes, aptRes, patRes, docRes, billRes, bedRes, resRes] = await Promise.allSettled([
+        reportApi.getSummary({ range: dateRange }),
         appointmentApi.getAll(),
         patientApi.getAll(),
         doctorApi.getAll(),
         billApi.getAll(),
+        bedApi.getAllBeds(),
+        bedApi.getAllReservations(),
       ]);
 
-      const aptList = Array.isArray(aptRes.data) ? aptRes.data : aptRes.data?.content || [];
-      const patList = Array.isArray(patRes.data) ? patRes.data : patRes.data?.content || [];
-      const docList = Array.isArray(docRes.data) ? docRes.data : docRes.data?.content || [];
-      const billList = Array.isArray(billRes.data) ? billRes.data : billRes.data?.content || [];
+      const statsData = statsRes.status === 'fulfilled' && statsRes.value?.data ? statsRes.value.data : null;
+
+      const rawApt = aptRes.status === 'fulfilled' ? (Array.isArray(aptRes.value.data) ? aptRes.value.data : aptRes.value.data?.content || []) : [];
+      const rawPat = patRes.status === 'fulfilled' ? (Array.isArray(patRes.value.data) ? patRes.value.data : patRes.value.data?.content || []) : [];
+      const docList = docRes.status === 'fulfilled' ? (Array.isArray(docRes.value.data) ? docRes.value.data : docRes.value.data?.content || []) : [];
+      const rawBill = billRes.status === 'fulfilled' ? (Array.isArray(billRes.value.data) ? billRes.value.data : billRes.value.data?.content || []) : [];
+      const bedList = bedRes.status === 'fulfilled' ? (Array.isArray(bedRes.value.data) ? bedRes.value.data : bedRes.value.data?.content || []) : [];
+      const resList = resRes.status === 'fulfilled' ? (Array.isArray(resRes.value.data) ? resRes.value.data : resRes.value.data?.content || []) : [];
+
+      // Calculate date threshold for frontend fallback filtering
+      const now = new Date();
+      let threshold = null;
+      if (dateRange === 'today') {
+        threshold = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (dateRange === 'week') {
+        threshold = new Date(now.getTime() - 7 * 86400000);
+      } else if (dateRange === 'month') {
+        threshold = new Date(now.getTime() - 30 * 86400000);
+      }
+
+      const aptList = rawApt.filter((a) => {
+        if (!threshold) return true;
+        if (!a.appointmentDate) return true;
+        return new Date(a.appointmentDate) >= threshold;
+      });
+
+      const billList = rawBill.filter((b) => {
+        if (!threshold) return true;
+        const dStr = b.billDate || b.createdAt;
+        if (!dStr) return true;
+        return new Date(dStr) >= threshold;
+      });
+
+      const patList = rawPat.filter((p) => {
+        if (!threshold) return true;
+        if (!p.createdAt) return true;
+        return new Date(p.createdAt) >= threshold;
+      });
 
       // Calculate status breakdowns
       const aptStatusMap = aptList.reduce((acc, a) => {
@@ -65,17 +106,18 @@ const Reports = () => {
       }, {});
 
       const billStatusMap = billList.reduce((acc, b) => {
-        acc[b.paymentStatus] = (acc[b.paymentStatus] || 0) + 1;
+        const st = b.paymentStatus || 'Pending';
+        acc[st] = (acc[st] || 0) + 1;
         return acc;
       }, {});
 
       // Calculate financials
       const collected = billList
-        .filter((b) => b.paymentStatus === 'Paid')
+        .filter((b) => String(b.paymentStatus).toUpperCase() === 'PAID')
         .reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
       const pending = billList
-        .filter((b) => b.paymentStatus === 'Pending')
+        .filter((b) => String(b.paymentStatus).toUpperCase() === 'PENDING')
         .reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
       // Doctor workloads
@@ -86,15 +128,37 @@ const Reports = () => {
           name: doc.fullName,
           specialization: doc.specialization,
           totalAppointments: docApts.length,
-          completedAppointments: docApts.filter((a) => a.status === 'Completed').length,
+          completedAppointments: docApts.filter((a) => String(a.status).toLowerCase() === 'completed').length,
           status: doc.status,
         };
       });
 
-      if (statsRes?.data) {
+      // Bed Telemetry
+      const totalBeds = bedList.length;
+      const occupiedBeds = bedList.filter((b) => String(b.status).toUpperCase() === 'OCCUPIED').length;
+      const availableBeds = bedList.filter((b) => String(b.status).toUpperCase() === 'AVAILABLE').length;
+      const availableIcuBeds = bedList.filter(
+        (b) => String(b.bedType).toUpperCase() === 'ICU' && String(b.status).toUpperCase() === 'AVAILABLE'
+      ).length;
+      const pendingBedReservations = resList.filter((r) => String(r.status).toUpperCase() === 'PENDING').length;
+
+      if (statsData) {
         setReportData({
-          ...statsRes.data,
+          totalPatients: statsData.totalPatients || rawPat.length,
+          totalDoctors: statsData.totalDoctors || docList.length,
+          totalAppointments: statsData.totalAppointments || aptList.length,
+          totalBills: statsData.totalBills || billList.length,
+          totalRevenue: statsData.totalRevenue !== undefined ? statsData.totalRevenue : collected,
+          pendingRevenue: statsData.pendingRevenue !== undefined ? statsData.pendingRevenue : pending,
+          appointmentsByStatus: statsData.appointmentsByStatus || aptStatusMap,
+          billsByStatus: statsData.billsByStatus || billStatusMap,
           doctorWorkloads: workloads,
+          recentRegistrations: statsData.recentRegistrations || rawPat.slice(0, 5),
+          totalBeds: statsData.totalBeds || totalBeds,
+          occupiedBeds: statsData.occupiedBeds || occupiedBeds,
+          availableBeds: statsData.availableBeds || availableBeds,
+          availableIcuBeds: statsData.availableIcuBeds || availableIcuBeds,
+          pendingBedReservations: statsData.pendingBedReservations || pendingBedReservations,
         });
       } else {
         setReportData({
@@ -107,7 +171,12 @@ const Reports = () => {
           appointmentsByStatus: aptStatusMap,
           billsByStatus: billStatusMap,
           doctorWorkloads: workloads,
-          recentRegistrations: patList.slice(0, 5),
+          recentRegistrations: rawPat.slice(0, 5),
+          totalBeds,
+          occupiedBeds,
+          availableBeds,
+          availableIcuBeds,
+          pendingBedReservations,
         });
       }
     } catch (err) {
@@ -123,12 +192,17 @@ const Reports = () => {
     try {
       const rows = [
         ['Metric Category', 'Metric Name', 'Value'],
+        ['Hospital Overview', 'Selected Date Range', dateRange.toUpperCase()],
         ['Hospital Overview', 'Total Patients Registered', reportData.totalPatients],
         ['Hospital Overview', 'Active Medical Doctors', reportData.totalDoctors],
         ['Hospital Overview', 'Total Consultations Scheduled', reportData.totalAppointments],
         ['Financials', 'Collected Revenue (INR)', reportData.totalRevenue],
         ['Financials', 'Pending Receivables (INR)', reportData.pendingRevenue],
         ['Financials', 'Total Invoices Generated', reportData.totalBills],
+        ['Bed Infrastructure', 'Total Bed Units', reportData.totalBeds],
+        ['Bed Infrastructure', 'Occupied Inpatient Beds', reportData.occupiedBeds],
+        ['Bed Infrastructure', 'Vacant ICU Units', reportData.availableIcuBeds],
+        ['Bed Infrastructure', 'Pending Admission Requests', reportData.pendingBedReservations],
         [],
         ['Doctor Name', 'Specialization', 'Appointments Handled', 'Completed Consultations'],
         ...reportData.doctorWorkloads.map((d) => [
@@ -144,7 +218,7 @@ const Reports = () => {
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `VitalSync_Analytics_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `VitalSync_Analytics_Report_${dateRange}_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -173,15 +247,15 @@ const Reports = () => {
         <div>
           <h1 className="font-headline-lg text-headline-lg text-on-surface">Analytics & Reports</h1>
           <p className="font-body-md text-on-surface-variant text-sm mt-1">
-            Hospital performance, clinical consultation volumes, and financial indicators.
+            Hospital operational performance, consultation metrics, bed occupancy telemetry, and financial indicators.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-2 text-sm text-on-surface font-semibold focus:outline-none focus:border-primary shadow-sm"
+            className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-2 text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary shadow-sm"
           >
             <option value="today">Today</option>
             <option value="week">This Week</option>
@@ -191,7 +265,7 @@ const Reports = () => {
 
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface font-bold px-4 py-2 rounded-xl text-sm transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg">download</span>
             <span>Export CSV</span>
@@ -199,7 +273,7 @@ const Reports = () => {
 
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 bg-primary text-on-primary font-bold px-4 py-2 rounded-xl hover:bg-primary-container transition-colors text-sm shadow-sm"
+            className="inline-flex items-center gap-2 bg-primary text-on-primary font-bold px-4 py-2 rounded-xl hover:bg-primary-container transition-colors text-xs sm:text-sm shadow-sm cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg">print</span>
             <span>Print Report</span>
@@ -207,7 +281,7 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
+      {/* Primary KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
@@ -217,7 +291,7 @@ const Reports = () => {
             </div>
           </div>
           <p className="font-stats-lg text-stats-lg text-emerald-700">{formatINR(reportData.totalRevenue)}</p>
-          <p className="text-xs text-on-surface-variant mt-1">Paid Patient Invoices</p>
+          <p className="text-xs text-on-surface-variant mt-1">Paid Invoices ({dateRange.toUpperCase()})</p>
         </div>
 
         <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 shadow-sm">
@@ -228,7 +302,7 @@ const Reports = () => {
             </div>
           </div>
           <p className="font-stats-lg text-stats-lg text-on-surface">{reportData.totalPatients}</p>
-          <p className="text-xs text-on-surface-variant mt-1">Active Patient Registrations</p>
+          <p className="text-xs text-on-surface-variant mt-1">Patient Registrations</p>
         </div>
 
         <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 shadow-sm">
@@ -250,7 +324,46 @@ const Reports = () => {
             </div>
           </div>
           <p className="font-stats-lg text-stats-lg text-amber-700">{formatINR(reportData.pendingRevenue)}</p>
-          <p className="text-xs text-on-surface-variant mt-1">Pending Invoice Balances</p>
+          <p className="text-xs text-on-surface-variant mt-1">Outstanding Balances</p>
+        </div>
+      </div>
+
+      {/* Bed & ICU Operational Telemetry Cards */}
+      <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-surface-variant pb-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-xl">hotel</span>
+            <h3 className="font-headline-md text-headline-md text-on-surface">Bed & ICU Capacity Telemetry</h3>
+          </div>
+          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+            Live Monitoring
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl bg-surface border border-outline-variant">
+            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total Bed Capacity</p>
+            <p className="text-2xl font-extrabold text-on-surface mt-1">{reportData.totalBeds || 0} Units</p>
+            <p className="text-[11px] text-on-surface-variant mt-0.5">Across all hospital wings</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200">
+            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Occupied Inpatients</p>
+            <p className="text-2xl font-extrabold text-amber-700 mt-1">{reportData.occupiedBeds || 0} Beds</p>
+            <p className="text-[11px] text-amber-600 mt-0.5">Currently admitted</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-rose-50/60 border border-rose-200">
+            <p className="text-xs font-bold text-rose-800 uppercase tracking-wider">Available ICU Beds</p>
+            <p className="text-2xl font-extrabold text-rose-700 mt-1">{reportData.availableIcuBeds || 0} Vacant</p>
+            <p className="text-[11px] text-rose-600 mt-0.5">Critical care availability</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-sky-50/60 border border-sky-200">
+            <p className="text-xs font-bold text-sky-800 uppercase tracking-wider">Pending Admission Requests</p>
+            <p className="text-2xl font-extrabold text-sky-700 mt-1">{reportData.pendingBedReservations || 0} Requests</p>
+            <p className="text-[11px] text-sky-600 mt-0.5">Awaiting staff review</p>
+          </div>
         </div>
       </div>
 
@@ -265,12 +378,12 @@ const Reports = () => {
 
           <div className="space-y-3">
             {[
-              { label: 'Confirmed', color: 'bg-emerald-500', count: reportData.appointmentsByStatus['Confirmed'] || 0 },
+              { label: 'Confirmed', color: 'bg-emerald-500', count: reportData.appointmentsByStatus['Confirmed'] || reportData.appointmentsByStatus['CONFIRMED'] || 0 },
               { label: 'In Progress', color: 'bg-sky-500', count: reportData.appointmentsByStatus['In Progress'] || 0 },
               { label: 'Scheduled', color: 'bg-amber-500', count: reportData.appointmentsByStatus['Scheduled'] || 0 },
               { label: 'Urgent', color: 'bg-rose-500', count: reportData.appointmentsByStatus['Urgent'] || 0 },
-              { label: 'Completed', color: 'bg-slate-500', count: reportData.appointmentsByStatus['Completed'] || 0 },
-              { label: 'Cancelled', color: 'bg-red-300', count: reportData.appointmentsByStatus['Cancelled'] || 0 },
+              { label: 'Completed', color: 'bg-slate-500', count: reportData.appointmentsByStatus['Completed'] || reportData.appointmentsByStatus['COMPLETED'] || 0 },
+              { label: 'Cancelled', color: 'bg-red-300', count: reportData.appointmentsByStatus['Cancelled'] || reportData.appointmentsByStatus['CANCELLED'] || 0 },
             ].map((st) => {
               const pct = reportData.totalAppointments > 0 ? ((st.count / reportData.totalAppointments) * 100).toFixed(0) : 0;
               return (
@@ -298,17 +411,21 @@ const Reports = () => {
             <span className="text-xs text-on-surface-variant font-semibold">Total Invoices: {reportData.totalBills}</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-800">Total Collected</p>
               <p className="font-stats-lg text-stats-lg text-emerald-700 mt-1">{formatINR(reportData.totalRevenue)}</p>
-              <p className="text-xs text-emerald-600 mt-1">{reportData.billsByStatus['Paid'] || 0} Invoices Settled</p>
+              <p className="text-xs text-emerald-600 mt-1">
+                {reportData.billsByStatus['Paid'] || reportData.billsByStatus['PAID'] || 0} Invoices Settled
+              </p>
             </div>
 
             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
               <p className="text-xs font-bold uppercase tracking-wider text-amber-800">Outstanding Receivables</p>
               <p className="font-stats-lg text-stats-lg text-amber-700 mt-1">{formatINR(reportData.pendingRevenue)}</p>
-              <p className="text-xs text-amber-600 mt-1">{reportData.billsByStatus['Pending'] || 0} Invoices Pending</p>
+              <p className="text-xs text-amber-600 mt-1">
+                {reportData.billsByStatus['Pending'] || reportData.billsByStatus['PENDING'] || 0} Invoices Pending
+              </p>
             </div>
           </div>
 
@@ -367,22 +484,26 @@ const Reports = () => {
           <div className="text-right text-xs">
             <h2 className="text-base font-bold text-primary">ADMINISTRATIVE ANALYTICS REPORT</h2>
             <p>Generated on: {new Date().toLocaleString()}</p>
-            <p>Period: {dateRange.toUpperCase()}</p>
+            <p>Filter Period: {dateRange.toUpperCase()}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-6 border border-gray-300 p-4 rounded text-xs">
+        <div className="grid grid-cols-4 gap-4 mb-6 border border-gray-300 p-4 rounded text-xs">
           <div>
-            <p className="text-gray-500 font-bold uppercase">Total Revenue Collected</p>
+            <p className="text-gray-500 font-bold uppercase">Total Revenue</p>
             <p className="text-base font-bold mt-0.5">{formatINR(reportData.totalRevenue)}</p>
           </div>
           <div>
-            <p className="text-gray-500 font-bold uppercase">Total Patient Registrations</p>
+            <p className="text-gray-500 font-bold uppercase">Patient Registrations</p>
             <p className="text-base font-bold mt-0.5">{reportData.totalPatients}</p>
           </div>
           <div>
-            <p className="text-gray-500 font-bold uppercase">Total Consultations</p>
+            <p className="text-gray-500 font-bold uppercase">Consultations</p>
             <p className="text-base font-bold mt-0.5">{reportData.totalAppointments}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 font-bold uppercase">Bed Occupancy</p>
+            <p className="text-base font-bold mt-0.5">{reportData.occupiedBeds} / {reportData.totalBeds}</p>
           </div>
         </div>
 

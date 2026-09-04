@@ -53,6 +53,13 @@ const BedManagement = () => {
   const [deleteConfirmBed, setDeleteConfirmBed] = useState(null);
   const [deletingBed, setDeletingBed] = useState(false);
 
+  // Reservation Approval Modal & Filter State
+  const [approvalModalRes, setApprovalModalRes] = useState(null);
+  const [selectedBedIdForApproval, setSelectedBedIdForApproval] = useState('');
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [approvingRes, setApprovingRes] = useState(false);
+  const [resFilterStatus, setResFilterStatus] = useState('ALL');
+
   const fetchData = async (isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
@@ -216,15 +223,55 @@ const BedManagement = () => {
     }
   };
 
-  // Reservation Status
-  const handleReservationAction = async (resId, status) => {
+  // Open Approval Modal
+  const openApprovalModal = (reservation) => {
+    setApprovalModalRes(reservation);
+    setApprovalNotes(`Approved by staff on ${new Date().toLocaleDateString()}`);
+    // Find matching available beds for default selection
+    const availMatchingBeds = beds.filter(
+      (b) =>
+        b.status === 'AVAILABLE' &&
+        (!reservation.departmentId || String(b.departmentId) === String(reservation.departmentId)) &&
+        (!reservation.bedType || b.bedType === reservation.bedType)
+    );
+
+    if (availMatchingBeds.length > 0) {
+      setSelectedBedIdForApproval(String(availMatchingBeds[0].id));
+    } else {
+      const anyAvailBed = beds.find((b) => b.status === 'AVAILABLE');
+      setSelectedBedIdForApproval(anyAvailBed ? String(anyAvailBed.id) : '');
+    }
+  };
+
+  // Confirm Reservation Approval
+  const handleConfirmApprovalSubmit = async (e) => {
+    e.preventDefault();
+    if (!approvalModalRes) return;
+
+    setApprovingRes(true);
     try {
-      await bedApi.updateReservationStatus(resId, status, `Updated by staff to ${status}`);
-      toast.success(`Reservation marked as ${status}`);
+      const bedId = selectedBedIdForApproval ? Number(selectedBedIdForApproval) : null;
+      await bedApi.updateReservationStatus(approvalModalRes.id, 'CONFIRMED', approvalNotes, bedId);
+      toast.success(`Bed reservation ${approvalModalRes.reservationCode} approved! Patient admitted to bed.`);
+      setApprovalModalRes(null);
       await fetchData();
     } catch (err) {
-      console.error('Update reservation error:', err);
-      toast.error('Failed to update reservation.');
+      console.error('Approve reservation error:', err);
+      toast.error(err?.response?.data?.message || 'Failed to approve bed reservation.');
+    } finally {
+      setApprovingRes(false);
+    }
+  };
+
+  // Reject / Cancel Reservation
+  const handleRejectReservation = async (reservation) => {
+    try {
+      await bedApi.updateReservationStatus(reservation.id, 'CANCELLED', 'Reservation request rejected by staff');
+      toast.success(`Reservation ${reservation.reservationCode} rejected.`);
+      await fetchData();
+    } catch (err) {
+      console.error('Reject reservation error:', err);
+      toast.error('Failed to reject reservation.');
     }
   };
 
@@ -568,74 +615,146 @@ const BedManagement = () => {
           </div>
         </div>
       ) : (
-        /* Reservations Table */
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-sm overflow-hidden">
-          {reservations.length === 0 ? (
-            <div className="p-8">
-              <EmptyState
-                icon="hotel"
-                title="No Admission Requests"
-                description="No pending patient bed reservation requests in queue."
+        /* Reservations View */
+        <div className="space-y-4">
+          {/* Reservation Status Filter Bar */}
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {['ALL', 'PENDING', 'CONFIRMED', 'CANCELLED'].map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setResFilterStatus(st)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    resFilterStatus === st
+                      ? 'bg-primary text-on-primary shadow-xs'
+                      : 'bg-surface hover:bg-surface-container-high text-on-surface-variant'
+                  }`}
+                >
+                  {st === 'ALL' ? 'All Requests' : st}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">
+                search
+              </span>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search patient, request code..."
+                className="w-full pl-9 pr-4 py-1.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
               />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-surface-container-high/60 text-on-surface-variant font-bold uppercase tracking-wider border-b border-surface-variant">
-                  <tr>
-                    <th className="py-3.5 px-6">Request Code</th>
-                    <th className="py-3.5 px-6">Patient</th>
-                    <th className="py-3.5 px-6">Requested Bed / Wing</th>
-                    <th className="py-3.5 px-6">Admission Date</th>
-                    <th className="py-3.5 px-6">Status</th>
-                    <th className="py-3.5 px-6 text-right">Staff Review</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-variant">
-                  {reservations.map((r) => (
-                    <tr key={r.id} className="hover:bg-surface transition-colors">
-                      <td className="py-4 px-6 font-mono font-bold text-primary">{r.reservationCode}</td>
-                      <td className="py-4 px-6">
-                        <p className="font-bold text-on-surface">{r.patientName}</p>
-                        <p className="font-mono text-[11px] text-on-surface-variant">{r.patientCode}</p>
-                      </td>
-                      <td className="py-4 px-6">
-                        <p className="font-bold text-on-surface">{r.bedType}</p>
-                        <p className="text-on-surface-variant text-[11px]">{r.departmentName}</p>
-                      </td>
-                      <td className="py-4 px-6 font-semibold text-on-surface">ðŸ“… {r.admissionDate}</td>
-                      <td className="py-4 px-6">
-                        <StatusBadge status={r.status} size="xs" />
-                      </td>
-                      <td className="py-4 px-6 text-right space-x-2">
-                        {r.status === 'PENDING' && (
-                          <>
-                            <button
-                              onClick={() => handleReservationAction(r.id, 'CONFIRMED')}
-                              className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-3 py-1 rounded-lg text-xs transition-colors cursor-pointer"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleReservationAction(r.id, 'CANCELLED')}
-                              className="bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold px-3 py-1 rounded-lg text-xs transition-colors cursor-pointer"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        {r.status === 'CONFIRMED' && (
-                          <span className="text-emerald-700 font-bold text-xs bg-emerald-50 px-2 py-1 rounded-lg">
-                            âœ“ Approved
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          </div>
+
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-sm overflow-hidden">
+            {(() => {
+              const filteredRes = reservations.filter((r) => {
+                if (resFilterStatus !== 'ALL' && String(r.status).toUpperCase() !== resFilterStatus) return false;
+                if (search) {
+                  const q = search.toLowerCase();
+                  const patMatch = (r.patientName || '')?.toLowerCase().includes(q) || (r.patientCode || '')?.toLowerCase().includes(q);
+                  const codeMatch = (r.reservationCode || '')?.toLowerCase().includes(q);
+                  if (!patMatch && !codeMatch) return false;
+                }
+                return true;
+              });
+
+              if (filteredRes.length === 0) {
+                return (
+                  <div className="p-8">
+                    <EmptyState
+                      icon="hotel"
+                      title="No Admission Requests Found"
+                      description={resFilterStatus !== 'ALL' || search ? 'No bed requests match current filters.' : 'No patient bed reservation requests in queue.'}
+                    />
+                  </div>
+                );
+              }
+
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-surface-container-high/60 text-on-surface-variant font-bold uppercase tracking-wider border-b border-surface-variant">
+                      <tr>
+                        <th className="py-3.5 px-6">Request Code</th>
+                        <th className="py-3.5 px-6">Patient</th>
+                        <th className="py-3.5 px-6">Requested Wing & Type</th>
+                        <th className="py-3.5 px-6">Allocated Bed Unit</th>
+                        <th className="py-3.5 px-6">Admission Date</th>
+                        <th className="py-3.5 px-6">Status</th>
+                        <th className="py-3.5 px-6 text-right">Staff Review</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-variant">
+                      {filteredRes.map((r) => (
+                        <tr key={r.id} className="hover:bg-surface transition-colors">
+                          <td className="py-4 px-6 font-mono font-bold text-primary">{r.reservationCode}</td>
+                          <td className="py-4 px-6">
+                            <p className="font-bold text-on-surface">{r.patientName}</p>
+                            <p className="font-mono text-[11px] text-on-surface-variant">{r.patientCode}</p>
+                          </td>
+                          <td className="py-4 px-6">
+                            <p className="font-bold text-on-surface">{r.bedType} Bed</p>
+                            <p className="text-on-surface-variant text-[11px]">{r.departmentName || 'General Ward'}</p>
+                          </td>
+                          <td className="py-4 px-6">
+                            {r.bedNumber ? (
+                              <span className="font-mono font-extrabold text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg text-xs">
+                                {r.bedNumber}
+                              </span>
+                            ) : (
+                              <span className="text-outline text-[11px] font-semibold">Unassigned</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-6 font-semibold text-on-surface">📅 {r.admissionDate}</td>
+                          <td className="py-4 px-6">
+                            <StatusBadge status={r.status} size="xs" />
+                          </td>
+                          <td className="py-4 px-6 text-right space-x-2 whitespace-nowrap">
+                            {String(r.status).toUpperCase() === 'PENDING' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openApprovalModal(r)}
+                                  className="bg-emerald-600 text-white hover:bg-emerald-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all shadow-xs cursor-pointer inline-flex items-center gap-1"
+                                >
+                                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                                  <span>Approve & Admit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRejectReservation(r)}
+                                  className="bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1"
+                                >
+                                  <span className="material-symbols-outlined text-sm">cancel</span>
+                                  <span>Reject</span>
+                                </button>
+                              </>
+                            )}
+                            {String(r.status).toUpperCase() === 'CONFIRMED' && (
+                              <span className="text-emerald-700 font-bold text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl inline-flex items-center gap-1">
+                                <span className="material-symbols-outlined text-sm">verified</span>
+                                <span>Approved & Admitted</span>
+                              </span>
+                            )}
+                            {String(r.status).toUpperCase() === 'CANCELLED' && (
+                              <span className="text-rose-700 font-bold text-xs bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl">
+                                Rejected
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 
@@ -847,6 +966,92 @@ const BedManagement = () => {
                   </svg>
                 )}
                 <span>Update Bed</span>
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Reservation Approval & Bed Allocation Modal */}
+      {approvalModalRes && (
+        <Modal
+          isOpen={true}
+          onClose={() => !approvingRes && setApprovalModalRes(null)}
+          title={`Approve Admission: ${approvalModalRes.reservationCode}`}
+          subtitle={`Patient: ${approvalModalRes.patientName} (${approvalModalRes.patientCode})`}
+          maxWidth="max-w-md"
+        >
+          <form onSubmit={handleConfirmApprovalSubmit} className="space-y-4">
+            <div className="p-3.5 bg-surface border border-outline-variant rounded-xl space-y-1 text-xs">
+              <p className="font-bold text-on-surface">
+                Requested Bed Type: <span className="text-primary font-extrabold">{approvalModalRes.bedType}</span>
+              </p>
+              <p className="text-on-surface-variant">
+                Department Wing: <strong>{approvalModalRes.departmentName || 'General Ward'}</strong>
+              </p>
+              <p className="text-on-surface-variant">
+                Expected Admission Date: <strong>{approvalModalRes.admissionDate}</strong>
+              </p>
+              {approvalModalRes.reason && (
+                <p className="text-on-surface-variant italic">
+                  Clinical Reason: "{approvalModalRes.reason}"
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                Assign Available Hospital Bed Unit *
+              </label>
+              <select
+                value={selectedBedIdForApproval}
+                onChange={(e) => setSelectedBedIdForApproval(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs font-bold text-on-surface"
+              >
+                <option value="">-- Auto-Assign Available Bed in Wing --</option>
+                {beds
+                  .filter((b) => b.status === 'AVAILABLE')
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      Bed {b.bedNumber} ({b.bedType} • {b.departmentName || 'General'} Wing - ${Number(b.dailyCharge || 0).toFixed(2)}/day)
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                Staff Approval Notes
+              </label>
+              <input
+                type="text"
+                value={approvalNotes}
+                onChange={(e) => setApprovalNotes(e.target.value)}
+                placeholder="e.g. Admitted to ICU Unit. Attending nurse assigned."
+                className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="pt-3 flex justify-end gap-2 border-t border-surface-variant">
+              <button
+                type="button"
+                onClick={() => setApprovalModalRes(null)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface border border-outline-variant transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={approvingRes}
+                className="bg-emerald-600 text-white font-bold text-xs px-5 py-2 rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                {approvingRes && (
+                  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                <span>Approve & Admit Inpatient</span>
               </button>
             </div>
           </form>

@@ -129,6 +129,18 @@ const Patients = () => {
       return;
     }
 
+    const selectedDob = new Date(formData.dob);
+    if (selectedDob > new Date()) {
+      toast.warning('Date of birth cannot be in the future.');
+      return;
+    }
+
+    const cleanPhone = String(formData.phone || '').replace(/\D/g, '');
+    if (cleanPhone.length < 7) {
+      toast.warning('Please enter a valid contact phone number (at least 7 digits).');
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (editPatient) {

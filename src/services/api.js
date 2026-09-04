@@ -522,7 +522,7 @@ export const bedApi = {
   // Reservations
   getAllReservations: (params) => api.get('/beds/reservations', { params }),
   createReservation: (data) => api.post('/beds/reservations', data),
-  updateReservationStatus: (id, status, notes) => api.patch(`/beds/reservations/${id}/status`, { status, notes }),
+  updateReservationStatus: (id, status, notes, bedId) => api.patch(`/beds/reservations/${id}/status`, { status, notes, bedId }),
 };
 
 // 8. Medical Reports (Staff)

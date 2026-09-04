@@ -25,6 +25,13 @@ public class ReportSummaryDto {
     private List<DoctorWorkloadDto> doctorWorkloads;
     private List<PatientDto> recentRegistrations;
 
+    // Bed & ICU Telemetry Metrics
+    private long totalBeds;
+    private long occupiedBeds;
+    private long availableBeds;
+    private long availableIcuBeds;
+    private long pendingBedReservations;
+
     @Data
     @Builder
     @NoArgsConstructor

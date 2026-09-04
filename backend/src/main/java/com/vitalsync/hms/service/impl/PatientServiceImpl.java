@@ -68,22 +68,31 @@ public class PatientServiceImpl implements PatientService {
     @Override
     @Transactional
     public PatientDto create(PatientDto dto) {
+        if (dto.getDob() != null && dto.getDob().isAfter(LocalDate.now())) {
+            throw new BadRequestException("Date of birth cannot be in the future");
+        }
+
         Patient patient = new Patient();
-        patient.setFullName(dto.getFullName());
+        patient.setFullName(dto.getFullName() != null ? dto.getFullName().trim() : "");
         patient.setDob(dto.getDob());
 
         if (dto.getDob() != null) {
-            patient.setAge(Period.between(dto.getDob(), LocalDate.now()).getYears());
+            int calculatedAge = Period.between(dto.getDob(), LocalDate.now()).getYears();
+            patient.setAge(Math.max(0, calculatedAge));
         } else {
-            patient.setAge(dto.getAge() != null ? dto.getAge() : 0);
+            patient.setAge(dto.getAge() != null ? Math.max(0, dto.getAge()) : 0);
         }
 
-        patient.setGender(dto.getGender());
-        patient.setBloodGroup(dto.getBloodGroup());
-        try {
-            patient.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
-        } catch (Exception e) {
-            patient.setPhone(dto.getPhone() != null ? dto.getPhone().trim() : "+1 (555) 000-0000");
+        patient.setGender(dto.getGender() != null ? dto.getGender() : "Male");
+        patient.setBloodGroup(dto.getBloodGroup() != null ? dto.getBloodGroup() : "O+");
+        if (dto.getPhone() != null && !dto.getPhone().trim().isEmpty()) {
+            try {
+                patient.setPhone(phoneValidationService.validateAndNormalize(dto.getPhone()));
+            } catch (Exception e) {
+                patient.setPhone(dto.getPhone().trim());
+            }
+        } else {
+            throw new BadRequestException("Phone number is required for patient registration");
         }
         patient.setEmail(dto.getEmail());
         patient.setAddress(dto.getAddress());
