@@ -55,16 +55,28 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const res = await authApi.login({ username, password });
-      const { token: jwtToken, user: userData } = res.data;
+      const data = res.data || {};
+      const jwtToken = data.token || data.jwt || data.accessToken || '';
+      let userData = data.user || (data.role ? data : null);
+
+      if (!userData) {
+        userData = {
+          username,
+          email: username,
+          role: 'PATIENT',
+          status: 'ACTIVE',
+        };
+      }
 
       setUser(userData);
-      setToken(jwtToken);
-
-      localStorage.setItem('vitalsync_token', jwtToken);
+      if (jwtToken) {
+        setToken(jwtToken);
+        localStorage.setItem('vitalsync_token', jwtToken);
+      }
       localStorage.setItem('vitalsync_user', JSON.stringify(userData));
 
       setLoading(false);
-      return { success: true, role: userData.role, user: userData };
+      return { success: true, role: userData.role || 'PATIENT', user: userData };
     } catch (err) {
       setLoading(false);
 
@@ -119,16 +131,30 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const res = await authApi.register(patientData);
-      const { token: jwtToken, user: userData } = res.data;
+      const data = res.data || {};
+      const jwtToken = data.token || data.jwt || data.accessToken || '';
+      let userData = data.user || (data.role ? data : null);
+
+      if (!userData) {
+        userData = {
+          username: patientData.email,
+          email: patientData.email,
+          fullName: `${patientData.firstName} ${patientData.lastName}`.trim(),
+          phone: patientData.phone,
+          role: 'PATIENT',
+          status: 'ACTIVE',
+        };
+      }
 
       setUser(userData);
-      setToken(jwtToken);
-
-      localStorage.setItem('vitalsync_token', jwtToken);
+      if (jwtToken) {
+        setToken(jwtToken);
+        localStorage.setItem('vitalsync_token', jwtToken);
+      }
       localStorage.setItem('vitalsync_user', JSON.stringify(userData));
 
       setLoading(false);
-      return { success: true, role: userData.role, user: userData };
+      return { success: true, role: userData.role || 'PATIENT', user: userData };
     } catch (err) {
       setLoading(false);
 
