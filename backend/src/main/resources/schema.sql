@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS prescription_medicines;
 DROP TABLE IF EXISTS prescriptions;
 DROP TABLE IF EXISTS bills;
 DROP TABLE IF EXISTS appointments;
+DROP TABLE IF EXISTS nurses;
 DROP TABLE IF EXISTS doctors;
 DROP TABLE IF EXISTS patients;
 DROP TABLE IF EXISTS users;
@@ -54,6 +55,31 @@ CREATE TABLE doctors (
     status VARCHAR(20) DEFAULT 'Available',
     image_url VARCHAR(1000),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3b. Nurses Table
+CREATE TABLE nurses (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    nurse_code VARCHAR(20) UNIQUE NOT NULL,
+    user_id BIGINT,
+    department_id BIGINT,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    dob DATE,
+    gender VARCHAR(20),
+    blood_group VARCHAR(10),
+    address VARCHAR(255),
+    qualification VARCHAR(100),
+    experience VARCHAR(50),
+    license_number VARCHAR(50),
+    joining_date DATE,
+    shift VARCHAR(50) DEFAULT 'Day Shift',
+    employment_status VARCHAR(50) DEFAULT 'Full-Time',
+    status VARCHAR(20) DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_nurse_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- 4. Appointments Table

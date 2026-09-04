@@ -10,6 +10,7 @@ import com.vitalsync.hms.exception.ConflictException;
 import com.vitalsync.hms.exception.ResourceNotFoundException;
 import com.vitalsync.hms.repository.DepartmentRepository;
 import com.vitalsync.hms.repository.DoctorRepository;
+import com.vitalsync.hms.repository.NurseRepository;
 import com.vitalsync.hms.repository.UserRepository;
 import com.vitalsync.hms.service.AuditLogService;
 import com.vitalsync.hms.service.UserManagementService;
@@ -36,8 +37,10 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final AuditLogService auditLogService;
     private final com.vitalsync.hms.service.PhoneValidationService phoneValidationService;
 
+    private final NurseRepository nurseRepository;
+
     private static final List<String> VALID_STATUSES = Arrays.asList("ACTIVE", "INACTIVE", "PENDING", "SUSPENDED");
-    private static final List<String> VALID_ROLES = Arrays.asList("ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT");
+    private static final List<String> VALID_ROLES = Arrays.asList("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE", "PATIENT");
 
     @Override
     @Transactional(readOnly = true)
@@ -75,7 +78,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Transactional
     public UserDto createStaffAccount(CreateStaffRequest request, String adminUsername) {
         String role = request.getRole() != null ? request.getRole().toUpperCase() : "DOCTOR";
-        if (!Arrays.asList("DOCTOR", "RECEPTIONIST", "ADMIN").contains(role)) {
+        if (!Arrays.asList("DOCTOR", "RECEPTIONIST", "NURSE", "ADMIN").contains(role)) {
             throw new BadRequestException("Invalid staff role: " + role);
         }
 
@@ -126,6 +129,31 @@ public class UserManagementServiceImpl implements UserManagementService {
                     .build();
 
             doctorRepository.save(doctor);
+        } else if ("NURSE".equals(role)) {
+            long count = nurseRepository.count();
+            String nurseCode = String.format("NUR-%04d", 3000 + count + 1);
+
+            Department department = null;
+            if (request.getDepartmentId() != null) {
+                department = departmentRepository.findById(request.getDepartmentId()).orElse(null);
+            }
+
+            com.vitalsync.hms.entity.Nurse nurse = com.vitalsync.hms.entity.Nurse.builder()
+                    .nurseCode(nurseCode)
+                    .user(savedUser)
+                    .department(department)
+                    .fullName(request.getFullName())
+                    .email(request.getEmail())
+                    .phone(phoneValidationService.validateAndNormalize(request.getPhone()))
+                    .qualification("B.Sc Nursing")
+                    .experience("3 Years")
+                    .licenseNumber("RN-" + (100000 + count + 1))
+                    .joiningDate(java.time.LocalDate.now())
+                    .shift("Day Shift")
+                    .status("Active")
+                    .build();
+
+            nurseRepository.save(nurse);
         }
 
         auditLogService.logAction(adminUsername, "ADMIN", "CREATE_STAFF_ACCOUNT", "User", savedUser.getId().toString(),

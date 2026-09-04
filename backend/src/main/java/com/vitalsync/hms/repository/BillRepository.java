@@ -47,6 +47,8 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     @Query("SELECT COUNT(b) FROM Bill b WHERE b.paymentStatus = 'Pending'")
     long countPendingBills();
 
+    long countByPaymentStatus(String paymentStatus);
+
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.paymentStatus = 'Paid'")
     BigDecimal sumCollectedRevenue();
 

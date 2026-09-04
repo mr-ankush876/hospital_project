@@ -76,35 +76,42 @@ public class SecurityConfig {
                         // Doctor Portal
                         .requestMatchers("/api/doctor/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
 
+                        // Nurse Management (Strictly ADMIN for mutations, clinical roles for read)
+                        .requestMatchers(HttpMethod.POST, "/api/nurses/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/nurses/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/nurses/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/nurses/**").hasRole("ADMIN")
+                        .requestMatchers("/api/nurses/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE")
+
                         // Admin & Receptionist Management endpoints
                         .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "RECEPTIONIST")
 
                         // Departments Governance
-                        .requestMatchers("/api/departments/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
+                        .requestMatchers("/api/departments/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE")
 
                         // Bed & ICU Management
-                        .requestMatchers("/api/beds/**").hasAnyRole("ADMIN", "RECEPTIONIST", "DOCTOR")
+                        .requestMatchers("/api/beds/**").hasAnyRole("ADMIN", "RECEPTIONIST", "DOCTOR", "NURSE")
 
                         // Medical Reports
-                        .requestMatchers("/api/medical-reports/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
+                        .requestMatchers("/api/medical-reports/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE")
 
                         // Dashboard endpoints
-                        .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
+                        .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE")
 
                         // Doctors management
-                        .requestMatchers("/api/doctors/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT")
+                        .requestMatchers("/api/doctors/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT", "NURSE")
 
                         // Patients management
-                        .requestMatchers("/api/patients/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
+                        .requestMatchers("/api/patients/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE")
 
                         // Appointments
-                        .requestMatchers("/api/appointments/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
+                        .requestMatchers("/api/appointments/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE")
 
                         // Prescriptions
                         .requestMatchers(HttpMethod.POST, "/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR")
                         .requestMatchers(HttpMethod.PUT, "/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/prescriptions/**").hasRole("ADMIN")
-                        .requestMatchers("/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
+                        .requestMatchers("/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE")
 
                         // Billing
                         .requestMatchers("/api/bills/**").hasAnyRole("ADMIN", "RECEPTIONIST")

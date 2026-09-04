@@ -293,6 +293,47 @@ const getFallbackDataForUrl = (url = '') => {
     ];
   }
 
+  if (cleanUrl.includes('/nurses')) {
+    return [
+      {
+        id: 1,
+        nurseCode: 'NUR-3001',
+        fullName: 'Clara Oswald',
+        email: 'clara.n@vitalsync.com',
+        phone: '+1 (555) 333-4455',
+        gender: 'Female',
+        bloodGroup: 'O+',
+        dob: '1994-11-23',
+        departmentName: 'Intensive Care Unit (ICU)',
+        qualification: 'BSN, RN, Critical Care Specialist',
+        experience: '6 Years',
+        licenseNumber: 'RN-998822',
+        joiningDate: '2021-03-15',
+        shift: 'Morning',
+        employmentStatus: 'Full-Time',
+        status: 'Active',
+      },
+      {
+        id: 2,
+        nurseCode: 'NUR-3002',
+        fullName: 'Alex Vance',
+        email: 'alex.n@vitalsync.com',
+        phone: '+1 (555) 666-7788',
+        gender: 'Female',
+        bloodGroup: 'A+',
+        dob: '1992-06-12',
+        departmentName: 'Cardiology',
+        qualification: 'MSN, Nurse Practitioner',
+        experience: '8 Years',
+        licenseNumber: 'RN-445511',
+        joiningDate: '2020-01-10',
+        shift: 'Night',
+        employmentStatus: 'Full-Time',
+        status: 'Active',
+      },
+    ];
+  }
+
   return null;
 };
 
@@ -647,6 +688,16 @@ export const emergencyApi = {
   getMy: () => api.get('/emergencies/my'),
   getById: (id) => api.get(`/emergencies/${id}`),
   updateStatus: (id, data) => api.patch(`/emergencies/${id}/status`, data),
+};
+
+// 19. Nurse Management Endpoints
+export const nurseApi = {
+  getAll: (params) => api.get('/nurses', { params }),
+  getById: (id) => api.get(`/nurses/${id}`),
+  create: (data) => api.post('/nurses', data),
+  update: (id, data) => api.put(`/nurses/${id}`, data),
+  updateStatus: (id, status) => api.patch(`/nurses/${id}/status`, { status }),
+  delete: (id) => api.delete(`/nurses/${id}`),
 };
 
 export default api;

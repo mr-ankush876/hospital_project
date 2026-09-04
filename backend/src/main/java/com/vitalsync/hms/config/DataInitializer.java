@@ -39,6 +39,7 @@ public class DataInitializer implements CommandLineRunner {
     private final BillRepository billRepository;
     private final HospitalSettingRepository hospitalSettingRepository;
     private final AuditLogRepository auditLogRepository;
+    private final NurseRepository nurseRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.seed-data.enabled:false}")
@@ -80,6 +81,9 @@ public class DataInitializer implements CommandLineRunner {
         seedUsers();
         if (doctorRepository.count() < 5) {
             seedDoctors();
+        }
+        if (nurseRepository.count() < 2) {
+            seedNurses();
         }
         seedBeds();
         if (patientRepository.count() == 0) {
@@ -315,6 +319,63 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         log.info("Seeded demo doctors idempotently");
+    }
+
+    private void seedNurses() {
+        String encodedPassword = passwordEncoder.encode("password123");
+        Department cardio = departmentRepository.findByName("Cardiology").orElse(null);
+        Department icu = departmentRepository.findByName("Intensive Care Unit (ICU)").orElse(null);
+
+        saveUserIfMissing("nurse.clara", encodedPassword, "clara.n@vitalsync.com", "Clara Oswald", "+1 (555) 333-4455", "NURSE");
+        saveUserIfMissing("nurse.alex", encodedPassword, "alex.n@vitalsync.com", "Alex Vance", "+1 (555) 666-7788", "NURSE");
+
+        User nurseUser1 = userRepository.findByUsername("nurse.clara").orElse(null);
+        User nurseUser2 = userRepository.findByUsername("nurse.alex").orElse(null);
+
+        if (nurseRepository.findByNurseCode("NUR-3001").isEmpty()) {
+            Nurse n1 = Nurse.builder()
+                    .nurseCode("NUR-3001")
+                    .user(nurseUser1)
+                    .department(icu)
+                    .fullName("Clara Oswald")
+                    .email("clara.n@vitalsync.com")
+                    .phone("+1 (555) 333-4455")
+                    .gender("Female")
+                    .bloodGroup("O+")
+                    .dob(LocalDate.parse("1994-11-23"))
+                    .qualification("BSN, RN, Critical Care Specialist")
+                    .experience("6 Years")
+                    .licenseNumber("RN-998822")
+                    .joiningDate(LocalDate.parse("2021-03-15"))
+                    .shift("Morning")
+                    .employmentStatus("Full-Time")
+                    .status("Active")
+                    .build();
+            nurseRepository.save(n1);
+        }
+
+        if (nurseRepository.findByNurseCode("NUR-3002").isEmpty()) {
+            Nurse n2 = Nurse.builder()
+                    .nurseCode("NUR-3002")
+                    .user(nurseUser2)
+                    .department(cardio)
+                    .fullName("Alex Vance")
+                    .email("alex.n@vitalsync.com")
+                    .phone("+1 (555) 666-7788")
+                    .gender("Female")
+                    .bloodGroup("A+")
+                    .dob(LocalDate.parse("1992-06-12"))
+                    .qualification("MSN, Nurse Practitioner")
+                    .experience("8 Years")
+                    .licenseNumber("RN-445511")
+                    .joiningDate(LocalDate.parse("2020-01-10"))
+                    .shift("Night")
+                    .employmentStatus("Full-Time")
+                    .status("Active")
+                    .build();
+            nurseRepository.save(n2);
+        }
+        log.info("Seeded demo nurses idempotently");
     }
 
     private void seedPatients() {

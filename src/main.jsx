@@ -50,6 +50,7 @@ import BedManagement from './pages/admin/BedManagement';
 import AuditLogs from './pages/admin/AuditLogs';
 import MedicalReportsAdmin from './pages/admin/MedicalReportsAdmin';
 import ReceptionistDesk from './pages/admin/ReceptionistDesk';
+import NurseManagement from './pages/admin/NurseManagement';
 import AdminLogin from './pages/admin/AdminLogin';
 
 // Route guard component
