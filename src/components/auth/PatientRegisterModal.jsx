@@ -25,6 +25,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [touched, setTouched] = useState({});
+  const [submitError, setSubmitError] = useState(null);
 
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -127,6 +128,7 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
       confirmPassword: formData.confirmPassword,
     };
 
+    setSubmitError(null);
     const result = await registerPatient(payload);
     if (result.success) {
       toast.success('Patient account created successfully! Please sign in with your email.');
@@ -134,7 +136,9 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
         onSuccess(payload.email);
       }
     } else {
-      toast.error(result.error || 'Registration failed. Please check your information.');
+      const errText = result.error || 'Registration failed. Please check your information and try again.';
+      setSubmitError(errText);
+      toast.error(errText);
     }
   };
 
@@ -172,6 +176,41 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
           </button>
         )}
       </div>
+
+      {submitError && (
+        <div className="mb-4 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start gap-3 shadow-sm animate-fade-in">
+          <span className="material-symbols-outlined text-rose-600 text-lg shrink-0 mt-0.5">error</span>
+          <div className="flex-1">
+            <p className="font-bold text-rose-900 mb-0.5">Registration Alert</p>
+            <p className="leading-relaxed">{submitError}</p>
+            {submitError.toLowerCase().includes('already registered') && (
+              <p className="mt-2 text-rose-900">
+                Already have an account?{' '}
+                <a
+                  href="/login"
+                  onClick={(e) => {
+                    if (onCancel) {
+                      e.preventDefault();
+                      onCancel();
+                      window.location.href = '/login';
+                    }
+                  }}
+                  className="font-bold underline hover:text-primary transition-colors"
+                >
+                  Click here to Login &rarr;
+                </a>
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSubmitError(null)}
+            className="text-rose-400 hover:text-rose-700 p-1"
+          >
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         {/* 1. First Name & 2. Last Name */}

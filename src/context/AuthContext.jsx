@@ -132,10 +132,24 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       setLoading(false);
 
-      const errorMessage =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        'Registration failed. Please check your information and try again.';
+      let errorMessage = err?.response?.data?.message;
+
+      if (err?.response?.data?.fieldErrors && typeof err.response.data.fieldErrors === 'object') {
+        const fieldMsgs = Object.values(err.response.data.fieldErrors).filter(Boolean);
+        if (fieldMsgs.length > 0) {
+          errorMessage = fieldMsgs.join('. ');
+        }
+      }
+
+      if (!errorMessage || errorMessage === 'Input validation failed on one or more fields') {
+        if (err?.response?.status === 409) {
+          errorMessage = 'This email address is already registered. Please sign in or use another email.';
+        } else if (err?.response?.status === 400) {
+          errorMessage = 'Registration details are invalid. Please check all required fields.';
+        } else {
+          errorMessage = err?.response?.data?.error || err?.message || 'Registration failed. Please check your information and try again.';
+        }
+      }
 
       setError(errorMessage);
       return { success: false, error: errorMessage };
