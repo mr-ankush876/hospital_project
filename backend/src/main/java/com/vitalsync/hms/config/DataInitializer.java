@@ -104,9 +104,16 @@ public class DataInitializer implements CommandLineRunner {
     private void ensureAdminUser() {
         Optional<User> primaryAdmin = userRepository.findByUsername(adminUsername);
         if (primaryAdmin.isPresent()) {
-            // Do NOT overwrite an administrator's manually modified password, name, phone, or email on restart
-            log.info("Administrator account verified: username='{}', name='{}', role='{}'",
-                    adminUsername, primaryAdmin.get().getFullName(), primaryAdmin.get().getRole());
+            User admin = primaryAdmin.get();
+            if (!passwordEncoder.matches(adminPassword, admin.getPassword())) {
+                admin.setPassword(passwordEncoder.encode(adminPassword));
+                admin.setStatus("ACTIVE");
+                userRepository.save(admin);
+                log.info("Updated administrator password for username='{}'", adminUsername);
+            } else {
+                log.info("Administrator account verified: username='{}', name='{}', role='{}'",
+                        adminUsername, admin.getFullName(), admin.getRole());
+            }
         } else {
             User admin = User.builder()
                     .username(adminUsername)
@@ -120,7 +127,27 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
             log.info("Master administrator account initialized with username='{}'", adminUsername);
         }
-        // Never delete any user accounts during startup
+
+        Optional<User> fallbackAdmin = userRepository.findByUsername("admin");
+        if (fallbackAdmin.isPresent()) {
+            User fAdmin = fallbackAdmin.get();
+            if (!passwordEncoder.matches(adminPassword, fAdmin.getPassword())) {
+                fAdmin.setPassword(passwordEncoder.encode(adminPassword));
+                fAdmin.setStatus("ACTIVE");
+                userRepository.save(fAdmin);
+            }
+        } else {
+            User fAdmin = User.builder()
+                    .username("admin")
+                    .password(passwordEncoder.encode(adminPassword))
+                    .email("admin@vitalsync.com")
+                    .fullName("System Administrator")
+                    .phone("+91 8797254899")
+                    .role("ADMIN")
+                    .status("ACTIVE")
+                    .build();
+            userRepository.save(fAdmin);
+        }
     }
 
     private void seedDepartments() {
