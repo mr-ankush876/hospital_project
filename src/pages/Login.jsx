@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { authApi } from '../services/api';
 import VitalSyncLogo from '../components/common/VitalSyncLogo';
-import PhoneNumberInput from '../components/common/PhoneNumberInput';
+import PatientRegisterModal from '../components/auth/PatientRegisterModal';
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -15,22 +15,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
 
-  // Register Form State (Always and exclusively PATIENT)
-  const [regForm, setRegForm] = useState({
-    username: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    gender: 'Male',
-    bloodGroup: 'O+',
-    dob: '1995-05-15',
-    address: '',
-    emergencyContact: '',
-  });
-  const [showRegPass, setShowRegPass] = useState(false);
-
   // Forgot Password Modal State
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -39,7 +23,7 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
-  const { login, registerPatient, loading } = useAuth();
+  const { login, loading } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -54,7 +38,7 @@ const Login = () => {
   const handleLoginSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      toast.error('Please enter both your username and password.');
+      toast.error('Please enter both your email/username and password.');
       return;
     }
 
@@ -73,47 +57,7 @@ const Login = () => {
         navigate('/dashboard');
       }
     } else {
-      toast.error(result.error || 'Authentication failed. Please verify your credentials.');
-    }
-  };
-
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!regForm.username.trim() || !regForm.fullName.trim() || !regForm.email.trim() || !regForm.phone.trim() || !regForm.password) {
-      toast.error('Please complete all required fields.');
-      return;
-    }
-
-    if (regForm.password !== regForm.confirmPassword) {
-      toast.error('Passwords do not match.');
-      return;
-    }
-
-    if (regForm.password.length < 6) {
-      toast.error('Password must be at least 6 characters.');
-      return;
-    }
-
-    const payload = {
-      username: regForm.username.trim(),
-      fullName: regForm.fullName.trim(),
-      email: regForm.email.trim(),
-      phone: regForm.phone.trim(),
-      password: regForm.password,
-      gender: regForm.gender,
-      bloodGroup: regForm.bloodGroup,
-      dob: regForm.dob,
-      address: regForm.address,
-      emergencyContact: regForm.emergencyContact || regForm.phone,
-    };
-
-    const result = await registerPatient(payload);
-    if (result.success) {
-      toast.success('Registration successful! Welcome to the VitalSync Patient Portal.');
-      navigate('/patient/appointments');
-    } else {
-      toast.error(result.error || 'Registration failed.');
+      toast.error(result.error || 'Authentication failed. Please verify your email and password.');
     }
   };
 
@@ -172,7 +116,7 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="w-full max-w-md sm:max-w-lg mx-auto space-y-6 my-auto py-6">
+      <div className="w-full max-w-md sm:max-w-xl mx-auto space-y-6 my-auto py-6">
         {/* Brand Header */}
         <div className="text-center">
           <div className="inline-flex justify-center mb-3">
@@ -232,7 +176,7 @@ const Login = () => {
               <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">
-                    Username or Email
+                    Email Address or Username
                   </label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-lg">
@@ -243,7 +187,7 @@ const Login = () => {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username or email"
+                      placeholder="Patients enter Email, Staff enter Username/Email"
                       autoComplete="off"
                       className="w-full pl-10 pr-4 py-2.5 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     />
@@ -303,177 +247,15 @@ const Login = () => {
               </form>
             </div>
           ) : (
-            <div>
-              <div className="mb-5">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-primary/10 text-primary mb-2">
-                  <span className="material-symbols-outlined text-sm">verified_user</span>
-                  Self-Service Patient Registration
-                </div>
-                <h2 className="font-headline-md text-headline-md text-on-surface">Create Patient Account</h2>
-                <p className="text-xs text-on-surface-variant mt-1">
-                  Register for access to online appointment booking, digital prescriptions, and laboratory reports.
-                </p>
-              </div>
-
-              <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={regForm.fullName}
-                      onChange={(e) => setRegForm({ ...regForm, fullName: e.target.value })}
-                      placeholder="e.g. John Doe"
-                      className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Username *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={regForm.username}
-                      onChange={(e) => setRegForm({ ...regForm, username: e.target.value })}
-                      placeholder="e.g. john.doe99"
-                      className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={regForm.email}
-                      onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                      placeholder="john@example.com"
-                      className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <PhoneNumberInput
-                      label="Phone Number"
-                      required
-                      value={regForm.phone}
-                      onChange={(val) => setRegForm({ ...regForm, phone: val })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Date of Birth
-                    </label>
-                    <input
-                      type="date"
-                      value={regForm.dob}
-                      onChange={(e) => setRegForm({ ...regForm, dob: e.target.value })}
-                      className="w-full px-2.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Gender
-                    </label>
-                    <select
-                      value={regForm.gender}
-                      onChange={(e) => setRegForm({ ...regForm, gender: e.target.value })}
-                      className="w-full px-2.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Blood Group
-                    </label>
-                    <select
-                      value={regForm.bloodGroup}
-                      onChange={(e) => setRegForm({ ...regForm, bloodGroup: e.target.value })}
-                      className="w-full px-2.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-semibold"
-                    >
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Password (min 6 chars) *
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showRegPass ? 'text' : 'password'}
-                        required
-                        value={regForm.password}
-                        onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                        placeholder="••••••••"
-                        className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegPass(!showRegPass)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          {showRegPass ? 'visibility_off' : 'visibility'}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                      Confirm Password *
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={regForm.confirmPassword}
-                      onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
-                      placeholder="••••••••"
-                      className="w-full px-3.5 py-2 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-primary text-on-primary font-bold py-3 rounded-xl hover:bg-primary-container transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-4 cursor-pointer"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span>Complete Patient Registration &rarr;</span>
-                  )}
-                </button>
-              </form>
-            </div>
+            <PatientRegisterModal
+              isModal={false}
+              onSuccess={(registeredEmail) => {
+                if (registeredEmail) {
+                  setUsername(registeredEmail);
+                }
+                setActiveTab('login');
+              }}
+            />
           )}
         </div>
       </div>

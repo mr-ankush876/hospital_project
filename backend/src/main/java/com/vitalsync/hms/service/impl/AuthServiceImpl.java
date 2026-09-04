@@ -16,6 +16,7 @@ import com.vitalsync.hms.service.AuditLogService;
 import com.vitalsync.hms.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -46,12 +47,16 @@ public class AuthServiceImpl implements AuthService {
         String identifier = request.getUsername() != null ? request.getUsername().trim() : "";
         String rawPassword = request.getPassword() != null ? request.getPassword() : "";
 
+        if (identifier.isEmpty() || rawPassword.isEmpty()) {
+            throw new BadCredentialsException("Email/Username and password are required.");
+        }
+
         // Resolve user by username or email (case-insensitive)
         User user = userRepository.findByUsername(identifier)
                 .or(() -> userRepository.findByEmail(identifier))
                 .or(() -> userRepository.findByUsernameIgnoreCase(identifier))
                 .or(() -> userRepository.findByEmailIgnoreCase(identifier))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username or email: " + identifier));
+                .orElseThrow(() -> new BadCredentialsException("Invalid email/username or password."));
 
         // Sync default password if user attempts login with configured admin or demo default passwords
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
@@ -105,26 +110,56 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse registerPatient(RegisterPatientRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ConflictException("Username is already taken. Please choose another username.");
+        if (request.getPassword() == null || request.getConfirmPassword() == null || !request.getPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("Password and confirm password do not match.");
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String firstName = request.getFirstName() != null ? request.getFirstName().trim() : "";
+        String lastName = request.getLastName() != null ? request.getLastName().trim() : "";
+        if (firstName.isEmpty() || lastName.isEmpty()) {
+            throw new BadRequestException("First name and last name are required.");
+        }
+        if (firstName.matches("^\\d+$") || lastName.matches("^\\d+$")) {
+            throw new BadRequestException("First name and last name cannot contain numbers only.");
+        }
+
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
+        if (email.isEmpty()) {
+            throw new BadRequestException("Email address is required.");
+        }
+        if (userRepository.existsByUsername(email) || userRepository.existsByEmail(email)) {
             throw new ConflictException("Email is already registered. Please sign in or use another email.");
         }
 
-        String validatedPhone = request.getPhone() != null ? request.getPhone().trim() : "+91 9876543210";
-        try {
-            validatedPhone = phoneValidationService.validateAndNormalize(request.getPhone());
-        } catch (Exception ignored) {
+        if (request.getDob() == null) {
+            throw new BadRequestException("Date of Birth is required.");
+        }
+        if (request.getDob().isAfter(LocalDate.now())) {
+            throw new BadRequestException("Date of Birth cannot be in the future.");
+        }
+        int age = Period.between(request.getDob(), LocalDate.now()).getYears();
+
+        String bloodGroup = request.getBloodGroup() != null ? request.getBloodGroup().trim() : "";
+        java.util.List<String> validBloodGroups = java.util.List.of("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-");
+        if (!validBloodGroups.contains(bloodGroup)) {
+            throw new BadRequestException("Invalid blood group selected. Must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-");
         }
 
-        // Security enforcement: ALWAYS force role = PATIENT regardless of request
+        String validatedPhone = request.getPhone() != null ? request.getPhone().trim() : "";
+        try {
+            validatedPhone = phoneValidationService.validateAndNormalize(request.getPhone());
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid phone number format: " + e.getMessage());
+        }
+
+        String fullName = (firstName + " " + lastName).trim();
+
+        // Security enforcement: ALWAYS force username = email and role = PATIENT regardless of request
         User user = User.builder()
-                .username(request.getUsername())
+                .username(email)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .email(request.getEmail())
-                .fullName(request.getFullName())
+                .email(email)
+                .fullName(fullName)
                 .phone(validatedPhone)
                 .role("PATIENT")
                 .status("ACTIVE")
@@ -137,33 +172,18 @@ public class AuthServiceImpl implements AuthService {
         long count = patientRepository.count();
         String patientCode = String.format("PT-%04d", 1000 + count + 1);
 
-        LocalDate dob = request.getDob() != null ? request.getDob() : LocalDate.of(1995, 1, 1);
-        int age = request.getAge() != null ? request.getAge() : Period.between(dob, LocalDate.now()).getYears();
-        if (age <= 0) age = 25;
-
-        String validatedEmergencyContact = validatedPhone;
-        if (request.getEmergencyContact() != null && !request.getEmergencyContact().trim().isEmpty()) {
-            try {
-                validatedEmergencyContact = phoneValidationService.validateAndNormalize(request.getEmergencyContact());
-            } catch (Exception ignored) {
-                validatedEmergencyContact = request.getEmergencyContact().trim();
-            }
-        }
-
         Patient patient = Patient.builder()
                 .patientCode(patientCode)
                 .user(savedUser)
-                .fullName(request.getFullName())
-                .dob(dob)
+                .fullName(fullName)
+                .dob(request.getDob())
                 .age(age)
-                .gender(request.getGender() != null ? request.getGender() : "Not Specified")
-                .bloodGroup(request.getBloodGroup() != null ? request.getBloodGroup() : "O+")
+                .gender("Other")
+                .bloodGroup(bloodGroup)
                 .phone(validatedPhone)
-                .email(request.getEmail())
-                .address(request.getAddress() != null && !request.getAddress().trim().isEmpty() ? request.getAddress() : "Hospital Region")
-                .emergencyContact(validatedEmergencyContact)
-                .medicalHistory(request.getMedicalHistory())
-                .allergies(request.getAllergies())
+                .email(email)
+                .address("Hospital Region")
+                .emergencyContact(validatedPhone)
                 .status("Active")
                 .build();
 

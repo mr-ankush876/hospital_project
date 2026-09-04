@@ -100,18 +100,14 @@ class AuthControllerIntegrationTest {
     @DisplayName("Public Patient Self-Registration strictly creates ROLE_PATIENT")
     void testPatientSelfRegistration() throws Exception {
         RegisterPatientRequest regRequest = RegisterPatientRequest.builder()
-                .username("new.patient.jane")
-                .password("password123")
-                .fullName("Jane Doe")
+                .firstName("Jane")
+                .lastName("Doe")
                 .email("jane.doe@example.com")
-                .phone("+1 (555) 777-8888")
+                .phone("+91 98765 43210")
                 .dob(LocalDate.of(1998, 4, 15))
-                .gender("Female")
                 .bloodGroup("B+")
-                .address("42 Oak Street")
-                .emergencyContact("+1 (555) 999-0000")
-                .allergies("None")
-                .medicalHistory("None")
+                .password("Password123!")
+                .confirmPassword("Password123!")
                 .build();
 
         mockMvc.perform(post("/api/auth/register")
@@ -119,7 +115,7 @@ class AuthControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(regRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").isString())
-                .andExpect(jsonPath("$.user.username").value("new.patient.jane"))
+                .andExpect(jsonPath("$.user.username").value("jane.doe@example.com"))
                 .andExpect(jsonPath("$.user.role").value("PATIENT"));
     }
 
