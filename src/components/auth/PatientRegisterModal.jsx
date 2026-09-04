@@ -133,11 +133,11 @@ const PatientRegisterModal = ({ onSuccess, onCancel, isModal = false }) => {
     setSubmitError(null);
     const result = await registerPatient(payload);
     if (result.success) {
-      toast.success('Patient account created successfully!');
+      toast.success(result.message || 'Patient account created successfully! Please sign in with your email and password.');
       if (onSuccess) {
         onSuccess(payload.email);
       } else {
-        navigate('/patient/appointments');
+        navigate('/login');
       }
     } else {
       const errText = result.error || 'Registration failed. Please check your information and try again.';

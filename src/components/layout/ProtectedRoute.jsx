@@ -4,22 +4,40 @@ import { useAuth } from '../../context/AuthContext';
 import Forbidden from '../../pages/Forbidden';
 import Loader from '../common/Loader';
 
-const ProtectedRoute = ({ allowedRoles }) => {
-  const { isAuthenticated, user, loading, hasRole } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { isAuthenticated: contextAuth, user: contextUser, loading, initializing } = useAuth();
 
-  if (loading) {
+  const savedUserStr = typeof window !== 'undefined' ? localStorage.getItem('vitalsync_user') : null;
+  const savedToken = typeof window !== 'undefined' ? localStorage.getItem('vitalsync_token') : null;
+  let savedUser = null;
+  try {
+    savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+  } catch (e) {}
+
+  const effectiveUser = contextUser || savedUser;
+  const effectiveAuth = contextAuth || (!!savedToken && !!effectiveUser);
+
+  if (loading || initializing) {
     return <Loader fullScreen message="Authenticating secure session..." />;
   }
 
-  if (!isAuthenticated || !user) {
+  if (!effectiveAuth || !effectiveUser) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !hasRole(allowedRoles)) {
-    return <Forbidden />;
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole = effectiveUser?.role ? String(effectiveUser.role).replace(/^ROLE_/, '').toUpperCase() : '';
+    const upperAllowed = allowedRoles.map((r) => String(r).toUpperCase());
+    const hasPermission = upperAllowed.includes(userRole) || userRole === 'ADMIN';
+
+    if (!hasPermission) {
+      if (userRole === 'PATIENT') return <Navigate to="/patient/appointments" replace />;
+      if (userRole === 'DOCTOR') return <Navigate to="/doctor/dashboard" replace />;
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
-  return <Outlet />;
+  return children || <Outlet />;
 };
 
 export default ProtectedRoute;

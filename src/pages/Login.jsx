@@ -277,8 +277,11 @@ const Login = () => {
             <PatientRegisterModal
               isModal={false}
               onSuccess={(registeredEmail) => {
-                toast.success('Registration successful! Redirecting to your patient portal...');
-                navigate('/patient/appointments');
+                toast.success('Account created successfully! Please sign in with your email & password.');
+                if (registeredEmail) {
+                  setUsername(registeredEmail);
+                }
+                setActiveTab('login');
               }}
             />
           )}

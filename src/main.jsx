@@ -55,7 +55,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 
 // Route guard component
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated: contextAuth, user: contextUser, loading } = useAuth();
+  const { isAuthenticated: contextAuth, user: contextUser, loading, initializing } = useAuth();
 
   // Fallback authentication check from localStorage to eliminate navigation race conditions
   const savedUserStr = typeof window !== 'undefined' ? localStorage.getItem('vitalsync_user') : null;
@@ -68,7 +68,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const effectiveUser = contextUser || savedUser;
   const effectiveAuth = contextAuth || (!!savedToken && !!effectiveUser);
 
-  if (loading) {
+  if (loading || initializing) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
@@ -76,12 +76,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     );
   }
 
-  if (!effectiveAuth) {
+  if (!effectiveAuth || !effectiveUser) {
     return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = effectiveUser?.role ? String(effectiveUser.role).toUpperCase() : '';
+    const userRole = effectiveUser?.role ? String(effectiveUser.role).replace(/^ROLE_/, '').toUpperCase() : '';
     const upperAllowed = allowedRoles.map((r) => String(r).toUpperCase());
     const hasPermission = upperAllowed.includes(userRole) || userRole === 'ADMIN';
 

@@ -14,13 +14,17 @@ export const AuthProvider = ({ children }) => {
   });
   const [token, setToken] = useState(() => localStorage.getItem('vitalsync_token') || null);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState(null);
 
   // Validate session on mount by checking with the backend
   useEffect(() => {
     const validateSession = async () => {
       const savedToken = localStorage.getItem('vitalsync_token');
-      if (!savedToken || savedToken.startsWith('offline_demo_token_')) return;
+      if (!savedToken || savedToken.startsWith('offline_demo_token_')) {
+        setInitializing(false);
+        return;
+      }
 
       try {
         const res = await authApi.getCurrentUser();
@@ -41,6 +45,8 @@ export const AuthProvider = ({ children }) => {
         } else {
           console.warn('Session validation notice (temporary network glitch), preserving cached user session');
         }
+      } finally {
+        setInitializing(false);
       }
     };
 
@@ -133,39 +139,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register Patient via real backend API
+  // Register Patient via real backend API (Explicitly NO auto-login)
   const registerPatient = async (patientData) => {
     setLoading(true);
     setError(null);
 
     try {
       const res = await authApi.register(patientData);
-      const data = res.data || {};
-      const jwtToken = data.token || data.jwt || data.accessToken || '';
-      let userData = data.user || (data.role ? data : null);
-
-      if (!userData) {
-        userData = {
-          username: patientData.email,
-          email: patientData.email,
-          fullName: `${patientData.firstName} ${patientData.lastName}`.trim(),
-          phone: patientData.phone,
-          role: 'PATIENT',
-          status: 'ACTIVE',
-        };
-      } else if (userData.role) {
-        userData.role = String(userData.role).replace(/^ROLE_/, '').toUpperCase();
-      }
-
-      setUser(userData);
-      if (jwtToken) {
-        setToken(jwtToken);
-        localStorage.setItem('vitalsync_token', jwtToken);
-      }
-      localStorage.setItem('vitalsync_user', JSON.stringify(userData));
-
       setLoading(false);
-      return { success: true, role: userData.role || 'PATIENT', user: userData };
+      return {
+        success: true,
+        email: patientData.email,
+        message: 'Patient account created successfully! Please sign in with your email and password.',
+      };
     } catch (err) {
       setLoading(false);
 
@@ -222,6 +208,7 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token && !!user,
         loading,
+        initializing,
         error,
         login,
         registerPatient,
