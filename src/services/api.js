@@ -310,7 +310,27 @@ api.interceptors.response.use(
     const isMockToken = token.startsWith('offline_demo_token_');
     const method = (error.config?.method || 'get').toLowerCase();
 
-    // Check if fallback data is available for GET requests on network/server/auth/403/404 errors
+    // If backend returned an explicit response (400, 409, 401, 403, 500), reject so component catches backend message
+    if (error.response && !isMockToken) {
+      if (error.response.status === 401) {
+        const isLoginRequest = error.config?.url?.includes('/auth/login') ||
+                               error.config?.url?.includes('/auth/register') ||
+                               error.config?.url?.includes('/auth/forgot-password');
+        if (!isLoginRequest) {
+          localStorage.removeItem('vitalsync_token');
+          localStorage.removeItem('vitalsync_user');
+          if (window.location.pathname.startsWith('/patient') ||
+              window.location.pathname.startsWith('/doctor') ||
+              window.location.pathname.startsWith('/admin') ||
+              window.location.pathname.startsWith('/dashboard')) {
+            window.location.href = '/login';
+          }
+        }
+      }
+      return Promise.reject(error);
+    }
+
+    // Only apply fallback when network is completely offline/unreachable or when using mock token
     if (method === 'get') {
       const fallbackData = getFallbackDataForUrl(error.config?.url);
       if (fallbackData !== null) {
@@ -323,8 +343,7 @@ api.interceptors.response.use(
         });
       }
     } else {
-      // For mutation requests (POST, PUT, PATCH, DELETE) when backend is unavailable, mock, or returning status error
-      if (isMockToken || !error.response || [400, 403, 404, 500, 502, 503, 504].includes(error.response?.status)) {
+      if (isMockToken || !error.response) {
         let reqData = {};
         try {
           reqData = typeof error.config?.data === 'string' ? JSON.parse(error.config.data) : (error.config?.data || {});

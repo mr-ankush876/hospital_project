@@ -115,9 +115,10 @@ const BedManagement = () => {
   // Open Add Bed
   const openAddBedModal = () => {
     setEditingBed(null);
+    const initialDepId = departments.length > 0 ? departments[0].id : '';
     setBedForm({
       bedNumber: '',
-      departmentId: departments[0]?.id || '',
+      departmentId: initialDepId ? String(initialDepId) : '',
       bedType: 'GENERAL',
       dailyCharge: '100.00',
       status: 'AVAILABLE',
@@ -655,7 +656,8 @@ const BedManagement = () => {
               <input
                 type="text"
                 required
-                value={bedForm.bedNumber}
+                autoFocus
+                value={bedForm.bedNumber || ''}
                 onChange={(e) => setBedForm({ ...bedForm, bedNumber: e.target.value })}
                 placeholder="e.g. ICU-005 or GW-216"
                 className="w-full px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary font-mono font-bold"

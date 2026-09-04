@@ -101,13 +101,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/appointments/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
 
                         // Prescriptions
+                        .requestMatchers(HttpMethod.POST, "/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/prescriptions/**").hasRole("ADMIN")
                         .requestMatchers("/api/prescriptions/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
 
                         // Billing
                         .requestMatchers("/api/bills/**").hasAnyRole("ADMIN", "RECEPTIONIST")
 
                         // Reports Analytics
-                        .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers("/api/reports/**").hasRole("ADMIN")
 
                         // Settings
                         .requestMatchers("/api/settings/**").authenticated()
