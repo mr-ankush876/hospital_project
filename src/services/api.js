@@ -8,9 +8,14 @@ const getApiBaseUrl = () => {
   if (envUrl && typeof window !== 'undefined' && window.location.protocol === 'https:' && envUrl.startsWith('http:')) {
     envUrl = envUrl.replace('http:', 'https:');
   }
-  if (envUrl) return envUrl;
-  // Use '/api' so Vercel rewrites (vercel.json) and Vite proxies (vite.config.js) target backend seamlessly without CORS preflight failures
-  return '/api';
+  // When running in browser on Vercel (*.vercel.app) or localhost, force relative '/api' so Vercel rewrites & Vite proxies route to backend same-origin
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.endsWith('.vercel.app') || host === 'localhost' || host === '127.0.0.1') {
+      return '/api';
+    }
+  }
+  return envUrl || '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
